@@ -1,0 +1,3 @@
+- Recipe view partially completed.
+- Supabase DB connected
+- Paper Library Component installed and used (Accordion)
