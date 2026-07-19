@@ -5,8 +5,11 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { List } from "react-native-paper";
 import { Text } from "./custom-text";
+import { router } from "expo-router";
+import RecipeVideoPlayer from "./recipe-video-player";
 
 const recipe = {
+  youtube_video_id: "mA7R20BMfTo",
   title: "Quick and Easy Sugar Cookies",
   recipe_by: "John Kanell",
   description:
@@ -112,6 +115,10 @@ const recipe = {
 export default function RecipeView() {
   return (
     <View>
+      <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+        <Feather name="arrow-left" size={24} color="black" />
+      </TouchableOpacity>
+
       <View
         style={{
           flexDirection: "row",
@@ -154,7 +161,7 @@ export default function RecipeView() {
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-          <MaterialCommunityIcons name="toaster-oven" size={18} color="black" />{" "}
+          <MaterialCommunityIcons name="toaster-oven" size={18} color="black" />
           <Text>{recipe.bake_time_minutes} mins.</Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
@@ -162,6 +169,8 @@ export default function RecipeView() {
           <Text>{recipe.temp_or_heat} </Text>
         </View>
       </View>
+
+      <RecipeVideoPlayer videoId={recipe.youtube_video_id} />
 
       <View
         style={{
@@ -186,24 +195,12 @@ export default function RecipeView() {
       </View>
 
       {/* Equipments */}
-      <View style={styles.section_3}>
-        <Text style={styles.sectionHeader}>Equipments</Text>
-        {recipe.equipment.map((equipment, index) => (
-          <Text key={index} style={styles.section_3_text}>
-            • {equipment}
-          </Text>
-        ))}
-      </View>
-      <View style={styles.section_3}>
+      <View style={styles.accordion_container}>
         <List.Accordion
           title="Equipments"
           id="equipments"
           left={(props) => (
-            <List.Icon
-              {...props}
-              icon="silverware-fork-knife"
-              color="#0f172a"
-            />
+            <List.Icon {...props} icon="pot-mix" color="#0f172a" />
           )}
           style={styles.accordion_header}
           titleStyle={styles.sectionHeader}
@@ -216,30 +213,72 @@ export default function RecipeView() {
             />
           )}
         >
-          {recipe.equipment.map((equipment, index) => (
-            <Text key={index} style={styles.section_3_text}>
-              • {equipment}
-            </Text>
-          ))}
+          <View style={styles.section_3}>
+            {recipe.equipment.map((equipment, index) => (
+              <Text key={index} style={styles.section_3_text}>
+                • {equipment}
+              </Text>
+            ))}
+          </View>
         </List.Accordion>
       </View>
+
       {/* Ingredients */}
-      <View style={styles.section_3}>
-        <Text style={styles.sectionHeader}>Ingredients</Text>
-        {recipe.ingredients.map((ingredient, index) => (
-          <Text key={index} style={styles.section_3_text}>
-            {`• ${ingredient.quantity} ${ingredient.unit} ${ingredient.name}  ${ingredient.grams_amount ? `(${ingredient.grams_amount} g)` : ""}`}
-          </Text>
-        ))}
+      <View style={styles.accordion_container}>
+        <List.Accordion
+          title="Ingredients"
+          id="ingredients"
+          left={(props) => (
+            <List.Icon {...props} icon="food-variant" color="#0f172a" />
+          )}
+          style={styles.accordion_header}
+          titleStyle={styles.sectionHeader}
+          right={(props) => (
+            <List.Icon
+              {...props}
+              // Flip the icon based on whether the accordion is open or closed
+              icon={props.isExpanded ? "chevron-up" : "chevron-down"}
+              color="#0f172a" // Force your exact color here!
+            />
+          )}
+        >
+          <View style={styles.section_3}>
+            {recipe.ingredients.map((ingredient, index) => (
+              <Text key={index} style={styles.section_3_text}>
+                {`• ${ingredient.quantity} ${ingredient.unit} ${ingredient.name}  ${ingredient.grams_amount ? `(${ingredient.grams_amount} g)` : ""}`}
+              </Text>
+            ))}
+          </View>
+        </List.Accordion>
       </View>
+
       {/* Instructions */}
-      <View style={styles.section_3}>
-        <Text style={styles.sectionHeader}>Instructions</Text>
-        {recipe.instructions.map((instruction, index) => (
-          <Text key={index} style={styles.section_3_text}>
-            {index + 1}. {instruction}
-          </Text>
-        ))}
+      <View style={styles.accordion_container}>
+        <List.Accordion
+          title="Instructions"
+          id="instructions"
+          left={(props) => (
+            <List.Icon {...props} icon="stairs" color="#0f172a" />
+          )}
+          style={styles.accordion_header}
+          titleStyle={styles.sectionHeader}
+          right={(props) => (
+            <List.Icon
+              {...props}
+              // Flip the icon based on whether the accordion is open or closed
+              icon={props.isExpanded ? "chevron-up" : "chevron-down"}
+              color="#0f172a" // Force your exact color here!
+            />
+          )}
+        >
+          <View style={styles.section_3}>
+            {recipe.instructions.map((instruction, index) => (
+              <Text key={index} style={styles.section_3_text}>
+                {index + 1}. {instruction}
+              </Text>
+            ))}
+          </View>
+        </List.Accordion>
       </View>
     </View>
   );
@@ -272,30 +311,46 @@ const styles = StyleSheet.create({
   desc: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 10,
+    marginBottom: 20,
   },
   section_2: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 20,
     borderWidth: 1,
     borderRadius: 8,
     borderColor: "#ccc",
     padding: 10,
   },
   section_3: {
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: "#ccc",
-    padding: 10,
-    backgroundColor: "white",
+    marginLeft: -30,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   section_3_text: {
-    marginBottom: 5,
+    fontSize: 14,
+    color: "#4d4d4d",
+    marginBottom: 10,
   },
   accordion_header: {
     backgroundColor: "white",
     borderWidth: 0,
+    padding: 0,
+  },
+  accordion_container: {
+    borderWidth: 1,
+    borderRadius: 8,
+    borderColor: "#ccc",
+    backgroundColor: "white",
+    marginBottom: 20,
+    overflow: "hidden", // CRITICAL: This clips the accordion's grey ripple effect so it perfectly matches your rounded corners!
+  },
+  button: {
+    // borderWidth: 1,
+    padding: 10,
+    paddingLeft: 0,
+    paddingTop: 0,
+    width: 40,
   },
 });

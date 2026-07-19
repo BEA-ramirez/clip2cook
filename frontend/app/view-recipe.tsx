@@ -1,38 +1,25 @@
 import {
-  View,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { router } from "expo-router";
-import { Text } from "@/components/custom-text";
+
 import RecipeView from "@/components/recipe-view";
-import Feather from "@expo/vector-icons/Feather";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ViewRecipe() {
+  const insets = useSafeAreaInsets();
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
+    <ScrollView
+      style={[styles.container, { paddingTop: insets.top }]}
+      contentContainerStyle={{
+        // apply the bottom home-bar height as padding to the bottom of the scroll content
+        paddingBottom: insets.bottom + 40,
+      }}
     >
-      <ScrollView style={styles.container}>
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 4,
-            alignItems: "center",
-            marginBottom: 20,
-          }}
-        >
-          {/* <TouchableOpacity style={styles.button} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={24} color="black" />
-          </TouchableOpacity> */}
-        </View>
-        <RecipeView />
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <RecipeView />
+    </ScrollView>
   );
 }
 

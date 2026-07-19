@@ -1,3 +1,4 @@
-- Recipe view partially completed.
-- Supabase DB connected
-- Paper Library Component installed and used (Accordion)
+- Added youtube iframe inside recipe view
+- Created recipe video player
+- Made each section into an Accordion
+- used useSafeAreaInsets
