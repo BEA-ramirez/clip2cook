@@ -11,7 +11,6 @@ import {
 import { Text } from "@/components/custom-text";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 
 // Update this if your laptop's local IP changes

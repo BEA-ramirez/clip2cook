@@ -1,4 +1,3 @@
-- Added youtube iframe inside recipe view
-- Created recipe video player
-- Made each section into an Accordion
-- used useSafeAreaInsets
+- Restyled the tab bar and added profile tab
+- Installed lucide icons
+- Created a theme.ts

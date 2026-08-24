@@ -1,45 +1,59 @@
-import { useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
-import { Text } from "@/components/custom-text";
-import { supabase } from "@/utils/supabase";
+import { Colors, Typography, Spacing } from "@/constants/theme";
+import { View, StyleSheet, ScrollView, Text } from "react-native";
+import SearchBar from "@/components/explore/search-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
-  const [status, setStatus] = useState("Testing connection...");
-
-  useEffect(() => {
-    async function testConnection() {
-      try {
-        // We ping the auth system. It requires no tables to be set up!
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error("Supabase Error:", error.message);
-          setStatus(`❌ Connection Failed: ${error.message}`);
-        } else {
-          console.log("Supabase connected successfully!", data);
-          setStatus("✅ Connected to Supabase Successfully!");
-        }
-      } catch (err) {
-        setStatus("❌ Network error. Check your .env.local file.");
-      }
-    }
-
-    testConnection();
-  }, []);
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{status}</Text>
-    </View>
+    <ScrollView
+      style={[styles.container, { paddingTop: insets.top }]}
+      contentContainerStyle={{
+        alignItems: "flex-start",
+        justifyContent: "flex-start",
+        paddingBottom: insets.bottom + 40,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          marginBottom: Spacing.lg,
+        }}
+      >
+        <View>
+          <Text style={styles.headerLabel}>Ready to Cook?</Text>
+          <Text style={styles.headerText}>Good evening</Text>
+        </View>
+        <View style={styles.user}></View>
+      </View>
+      <SearchBar />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: Colors.background,
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     padding: 20,
+  },
+  headerLabel: {
+    ...Typography.bodyMd,
+    color: Colors.on_primary_fixed,
+  },
+  headerText: {
+    ...Typography.display,
+    color: Colors.on_surface,
+  },
+  user: {
+    width: 50,
+    height: 50,
+    backgroundColor: Colors.surface_dim,
+    borderRadius: "100%",
   },
   text: {
     fontSize: 18,

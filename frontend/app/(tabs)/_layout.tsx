@@ -1,58 +1,60 @@
 import { Tabs } from "expo-router";
 import React from "react";
-
+import { Platform } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { House, Sparkles, BookOpenText, User } from "lucide-react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textSecondary,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
         tabBarStyle: {
-          height: 60,
-          paddingTop: 10,
+          backgroundColor: Colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: Colors.border,
+          height: Platform.OS === "ios" ? 85 : 70,
+          paddingBottom: Platform.OS === "ios" ? 25 : 10,
+          paddingTop: 5,
+        },
+        tabBarLabelStyle: {
+          fontFamily: "Inter_600SemiBold",
+          fontSize: 11,
+          marginTop: 1,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
-          ),
+          title: "Explore",
+          tabBarIcon: ({ color }) => <House size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="create"
         options={{
-          title: "Add",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="plus.circle.fill" color={color} />
-          ),
+          title: "Extract",
+          tabBarIcon: ({ color }) => <Sparkles size={20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
-          title: "Saved",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="bookmark.fill" color={color} />
-          ),
+          title: "Cookbook",
+          tabBarIcon: ({ color }) => <BookOpenText size={20} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="profile"
         options={{
-          href: null, // Hides the button from the tab bar completely!
+          title: "Profile",
+          tabBarIcon: ({ color }) => <User size={20} color={color} />,
         }}
       />
     </Tabs>
