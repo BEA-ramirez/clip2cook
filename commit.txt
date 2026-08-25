@@ -1,3 +1,5 @@
-- Restyled the tab bar and added profile tab
-- Installed lucide icons
-- Created a theme.ts
+- Components created today in explore tab page:
+     - search-bar
+     - category-pills
+     - recipe-card
+     - recipe list

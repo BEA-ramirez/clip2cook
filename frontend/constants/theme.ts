@@ -66,8 +66,8 @@ export const Spacing = {
   xs: 8,
   sm: 12, // Elements within a component (icon to text)
   md: 16,
-  lg: 24, // Spacing between major sections
-  xl: 32,
+  lg: 30, // Spacing between major sections
+  xl: 42,
   containerMargin: 20, // Mobile side margins
   gutter: 16,
 };
@@ -92,8 +92,8 @@ export const Shadows = {
     shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2, // Android equivalent
+    shadowRadius: 5,
+    elevation: 4, // Android equivalent
   },
   // Level 2: Primary action buttons or active modals
   // CSS: 0px 8px 24px rgba(15, 23, 42, 0.08)

@@ -35,7 +35,7 @@ const customPaperTheme = {
     primary: Colors.primary,
     background: Colors.background,
     surface: Colors.surface,
-    onSurface: Colors.textMain,
+    onSurface: Colors.on_surface,
     error: Colors.error,
   },
 };
