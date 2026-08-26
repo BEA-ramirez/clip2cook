@@ -12,7 +12,7 @@ import * as SplashScreen from "expo-splash-screen";
 
 import { PaperProvider, MD3LightTheme } from "react-native-paper";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Colors } from "@/constants/theme";
+import { Colors, Typography } from "@/constants/theme";
 import { useFonts } from "expo-font";
 import {
   Inter_400Regular,

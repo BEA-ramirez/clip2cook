@@ -1,9 +1,16 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, TouchableOpacity } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
-import { Colors } from "@/constants/theme";
-import { House, Sparkles, BookOpenText, User } from "lucide-react-native";
+import { Colors, Typography } from "@/constants/theme";
+import {
+  House,
+  Sparkles,
+  BookOpenText,
+  User,
+  Search,
+  Menu,
+} from "lucide-react-native";
 
 export default function TabLayout() {
   return (
@@ -41,6 +48,27 @@ export default function TabLayout() {
         options={{
           title: "Extract",
           tabBarIcon: ({ color }) => <Sparkles size={20} color={color} />,
+          headerTitle: "Clip2Cook",
+          headerTitleAlign: "center",
+          headerShown: true,
+          headerTitleStyle: {
+            ...Typography.headlineLg,
+            color: Colors.primary,
+          },
+          headerStyle: {
+            backgroundColor: "#fdfefe",
+          },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity style={{ paddingLeft: 20 }}>
+              <Menu size={24} color={Colors.on_primary_fixed} />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity style={{ paddingRight: 20 }}>
+              <Search size={24} color={Colors.on_primary_fixed} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <Tabs.Screen
@@ -55,6 +83,18 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => <User size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="loading"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="extra"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

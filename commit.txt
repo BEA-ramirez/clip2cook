@@ -1,5 +1,5 @@
-- Components created today in explore tab page:
-     - search-bar
-     - category-pills
-     - recipe-card
-     - recipe list
+- Components created today in extract tab page:
+     - main page complete
+     - extract-input
+     - pantry-chef
+     - next task: complete loading pages: extract and generate recipe

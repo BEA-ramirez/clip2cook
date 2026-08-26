@@ -13,7 +13,7 @@ export const Colors = {
   surface: "#f7f9fb",
   surface_dim: "#d8dadc",
   surface_bright: "#f7f9fb",
-  surface_container_lowest: "#ffffff",
+  surface_container_lowest: "#fbfcfd",
   surface_container_low: "#f2f4f6",
   surface_container: "#eceef0",
   surface_container_high: "#e6e8ea",
@@ -129,6 +129,11 @@ export const Typography = {
   bodyMd: {
     fontFamily: "Inter_400Regular",
     fontSize: 16,
+    lineHeight: 25.6, // 16 * 1.6
+  },
+  bodyMdSb: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 18,
     lineHeight: 25.6, // 16 * 1.6
   },
   bodySm: {
