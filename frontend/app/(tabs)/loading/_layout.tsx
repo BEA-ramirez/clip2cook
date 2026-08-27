@@ -40,9 +40,32 @@ export default function LoadingStackLayout() {
       <Stack.Screen
         name="generate-loading"
         options={{
-          title: "Clip2Cook",
-          presentation: "modal",
+          headerTitle: "Clip2Cook",
+          headerTitleAlign: "center",
+          headerShown: true,
+          headerTitleStyle: {
+            ...Typography.headlineLg,
+            color: Colors.primary,
+          },
+          headerStyle: {
+            backgroundColor: Colors.background,
+          },
+          headerShadowVisible: false,
           headerBackVisible: false,
+          headerLeft: () => (
+            <View style={{ paddingLeft: 20 }}>
+              <UtensilsCrossed size={22} color={Colors.primary} />
+            </View>
+          ),
+          headerRight: () => (
+            <View
+              style={{
+                padding: 20,
+              }}
+            >
+              <CircleUser size={24} color={Colors.primary} />
+            </View>
+          ),
         }}
       />
     </Stack>

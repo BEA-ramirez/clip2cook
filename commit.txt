@@ -1,5 +1,3 @@
 - Components created today in extract tab page:
-     - main page complete
-     - extract-input
-     - pantry-chef
-     - next task: complete loading pages: extract and generate recipe
+     - extract loading page
+     - generate recipe page (missing some functionalities)
