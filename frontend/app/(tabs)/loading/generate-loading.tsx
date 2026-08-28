@@ -1,217 +1,232 @@
-"use client";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  ScrollView,
   View,
   Text,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
+  Animated,
+  Easing,
   TouchableOpacity,
 } from "react-native";
 import {
-  Colors,
-  Typography,
-  Spacing,
-  Radius,
-  Shadows,
-} from "@/constants/theme";
-import {
-  Earth,
-  Icon,
-  CirclePlus,
-  ShieldPlus,
-  Check,
-  ListPlus,
-  Sparkles,
-  ArrowRight,
+  Wand2,
+  Flame,
+  UtensilsCrossed,
+  Refrigerator,
 } from "lucide-react-native";
-import { useState } from "react";
-import { refrigeratorFreezer } from "@lucide/lab";
+import { Colors, Radius, Typography, Shadows } from "@/constants/theme"; // Assuming your theme file
+import { useRouter } from "expo-router";
 
-const foodTypeChoices = [
-  "Italian",
-  "Asian",
-  "Mexican",
-  "Mediterranean",
-  "American",
-  "Any",
+const STATUS_MSGS = [
+  "Crafting custom recipe",
+  "Balancing flavor profiles",
+  "Calculating cooking times",
+  "Plating the final dish",
 ];
-const allergiesRestrictions = [
-  "Gluten-Free",
-  "Nut-Free",
-  "Vegetarian",
-  "Dairy-Free",
-  "Vegan",
-  "Keto",
+
+const INGREDIENTS = [
+  "Chicken Breast",
+  "Broccoli",
+  "Soy Sauce",
+  "Garlic",
+  "Ginger",
 ];
 
 export default function GenerateRecipeLoadingPage() {
-  const [foodType, setFoodType] = useState("");
+  const router = useRouter();
+
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [dots, setDots] = useState("");
+
+  // message cycle every 3 seconds
+  useEffect(() => {
+    const messageInterval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % STATUS_MSGS.length);
+    }, 3000);
+    return () => clearInterval(messageInterval);
+  }, []);
+
+  // animate the dot ellipsis every 400ms
+  useEffect(() => {
+    const dotsInterval = setInterval(() => {
+      setDots((prev) => {
+        if (prev === "...") return "";
+        return prev + ".";
+      });
+    }, 400);
+    return () => clearInterval(dotsInterval);
+  }, []);
+
+  // animation init
+  const pingAnim1 = useRef(new Animated.Value(0)).current;
+  const pingAnim2 = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  const chipAnims = useRef(
+    INGREDIENTS.map(() => new Animated.Value(0)),
+  ).current;
+
+  useEffect(() => {
+    // ping rings, expanding and fading out
+    const createPing = (anim: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 3000,
+            delay: delay,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+    };
+
+    // center icon pulse
+    const iconPulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    // fade in for ingredient chips
+    const chipAnimations = chipAnims.map((anim) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.back(1.5)),
+        useNativeDriver: true,
+      }),
+    );
+
+    createPing(pingAnim1, 0).start();
+    createPing(pingAnim2, 1000).start();
+    iconPulse.start();
+
+    Animated.stagger(100, chipAnimations).start();
+  }, []);
+
+  const getPingStyle = (anim: Animated.Value) => ({
+    transform: [
+      {
+        scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2] }),
+      },
+    ],
+    opacity: anim.interpolate({
+      inputRange: [0, 0.8, 1],
+      outputRange: [0.8, 0, 0],
+    }),
+  });
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={60}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.headerText}>Pantry Chef</Text>
-        <Text style={styles.desc}>
-          Tell us what&apos;s in your fridge, and our AI will craft the perfect
-          recipe.
+    <View style={styles.container}>
+      {/* CENTRAL CHEF/SPARKLES GRAPHIC */}
+      <View style={styles.graphicContainer}>
+        {/* Pinging Outer Rings */}
+        <Animated.View style={[styles.pingRing, getPingStyle(pingAnim1)]} />
+        <Animated.View
+          style={[
+            styles.pingRing,
+            { width: 140, height: 140 },
+            getPingStyle(pingAnim2),
+          ]}
+        />
+
+        {/* Center Pulsing Icon */}
+        <Animated.View
+          style={[
+            styles.centerIconBox,
+            {
+              transform: [
+                {
+                  scale: pulseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.95, 1.1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Wand2 size={48} color={Colors.primary_container} />
+
+          {/* Mini Floating Icons */}
+          <View style={styles.floatingIcon1}>
+            <Flame size={20} color={Colors.primary_fixed_dim} />
+          </View>
+          <View style={styles.floatingIcon2}>
+            <UtensilsCrossed
+              size={20}
+              color={Colors.tertiary_fixed_dim || "#59d5fb"}
+            />
+          </View>
+        </Animated.View>
+      </View>
+
+      {/* DYNAMIC TEXT */}
+      <View style={styles.textContainer}>
+        <Text style={styles.statusTitle}>
+          {STATUS_MSGS[messageIndex]}
+          {dots}
         </Text>
-        {/* Food Type */}
-        <View style={styles.foodTypeBox}>
-          <View style={styles.foodTypeHeader}>
-            <Earth color={Colors.secondary} size={22} />
-            <Text style={styles.typeText}>Type of Food</Text>
-          </View>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 10,
-            }}
-          >
-            {foodTypeChoices.map((ft, ind) => (
-              <TouchableOpacity
-                key={ind}
-                style={[styles.ftsButton, foodType === ft && styles.activeType]}
-                onPress={() => {
-                  if (foodType === ft) {
-                    setFoodType("");
-                    return;
-                  }
-                  setFoodType(ft);
-                }}
-              >
-                <Text
-                  style={[styles.fts, foodType === ft && styles.activeTypeText]}
-                >
-                  {ft}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <Text style={styles.statusSubtitle}>
+          Our AI chef is reviewing your pantry.
+        </Text>
+      </View>
+
+      {/* PANTRY INGREDIENTS LIST */}
+      <View style={styles.pantryCard}>
+        <View style={styles.pantryHeader}>
+          <Refrigerator size={16} color={Colors.secondary} />
+          <Text style={styles.pantryTitle}>YOUR PANTRY</Text>
         </View>
-        {/* List of Ingredients */}
-        <View style={styles.foodTypeBox}>
-          <View style={styles.foodTypeHeader}>
-            <Icon
-              iconNode={refrigeratorFreezer}
-              color={Colors.secondary}
-              size={22}
-            />
-            <Text style={styles.typeText}>List of Ingredients</Text>
-          </View>
-          <Text style={{ ...Typography.bodyMd, marginBottom: Spacing.sm }}>
-            Type an ingredient and press enter or comma to add.
-          </Text>
-          <View style={styles.inputBox}>
-            <TextInput
-              placeholder="e.g. Chicken breast, tomatoes..."
-              style={styles.input}
-              placeholderTextColor={Colors.secondary_fixed_dim}
-            />
-            <CirclePlus color={Colors.primary} />
-          </View>
-        </View>
-        {/* Allergies & Restrictions */}
-        <View style={styles.foodTypeBox}>
-          <View style={styles.foodTypeHeader}>
-            <ShieldPlus color={Colors.secondary} size={22} />
-            <Text style={styles.typeText}>Allergies &amp; Restrictions</Text>
-          </View>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            {allergiesRestrictions.map((allergy, ind) => (
-              <View key={ind} style={styles.checkBox}>
-                <View
-                  style={{
-                    backgroundColor: Colors.primary,
-                    padding: 3,
-                    borderRadius: Radius.sm,
-                  }}
-                >
-                  <Check size={14} color={Colors.background} strokeWidth={3} />
-                </View>
-                <Text style={styles.allergyText}>{allergy}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-        {/* Additional Details */}
-        <View style={styles.foodTypeBox}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-            }}
-          >
-            <View style={styles.foodTypeHeader}>
-              <ListPlus color={Colors.secondary} size={22} />
-              <Text style={styles.typeText}>Additional Details</Text>
-            </View>
-            <Text style={{ ...Typography.dataMono, color: Colors.secondary }}>
-              Optional
-            </Text>
-          </View>
-          <View style={styles.inputBox}>
-            <TextInput
-              placeholder="e.g. Make it spicy, Keep it under 500 calories, or Surprise me"
-              style={[styles.input, styles.details]}
-              multiline={true}
-              numberOfLines={4}
-              textAlignVertical="top"
-              placeholderTextColor={Colors.secondary_fixed_dim}
-            />
-          </View>
-        </View>
-        {/* AI Button */}
-        <View style={[styles.foodTypeBox, { marginBottom: 60 }]}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-          >
-            <Sparkles size={16} color={Colors.primary} strokeWidth={2} />
-            <Text
-              style={{
-                ...Typography.dataMono,
-                color: Colors.primary,
-              }}
+
+        <View style={styles.chipRow}>
+          {INGREDIENTS.map((ingredient, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.chip,
+                {
+                  opacity: chipAnims[index],
+                  transform: [
+                    {
+                      translateY: chipAnims[index].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [15, 0], // Slide up from 15px below
+                      }),
+                    },
+                  ],
+                },
+              ]}
             >
-              AI LOGIC READY
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.generateButton}>
-            <Text
-              style={{
-                ...Typography.bodyMdSb,
-                color: Colors.on_primary_container,
-              }}
-            >
-              Generate Recipe
-            </Text>
-            <ArrowRight color={Colors.on_primary_container} size={20} />
-          </TouchableOpacity>
+              <Text style={styles.chipText}>{ingredient}</Text>
+            </Animated.View>
+          ))}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+
+      {/* CANCEL BUTTON */}
+      <TouchableOpacity
+        style={styles.cancelButton}
+        onPress={() => router.back()} // Safely go back to the previous screen!
+      >
+        <Text style={styles.cancelText}>Cancel Generation</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -219,104 +234,106 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 24,
-    justifyContent: "flex-end",
+  graphicContainer: {
+    width: 200,
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 48,
   },
-  headerText: {
-    ...Typography.headlineLg,
+  pingRing: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 100,
+    borderWidth: 4,
+    borderColor: Colors.primary_container + "33", // hex alpha for 20% opacity
+  },
+  centerIconBox: {
+    width: 128,
+    height: 128,
+    backgroundColor: Colors.surface_container_lowest,
+    borderRadius: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Shadows.level2,
+  },
+  floatingIcon1: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
+  floatingIcon2: {
+    position: "absolute",
+    bottom: 16,
+    left: 8,
+  },
+  textContainer: {
+    alignItems: "center",
+    marginBottom: 40,
+    minHeight: 60, // Prevents layout jumping when text changes length
+  },
+  statusTitle: {
+    ...Typography.headlineLgMobile,
     color: Colors.on_surface,
-    marginBottom: Spacing.md,
+    marginBottom: 8,
+    textAlign: "left", // Keep left aligned so the dots don't wiggle the text
+    width: 260, // Fixed width prevents the text from re-centering when dots are added
   },
-  desc: {
-    ...Typography.bodyMd,
-    color: Colors.secondary,
-    marginBottom: Spacing.lg,
+  statusSubtitle: {
+    ...Typography.bodySm,
+    color: Colors.on_surface_variant,
   },
-  foodTypeBox: {
-    padding: 22,
-    backgroundColor: Colors.on_primary,
+  pantryCard: {
     width: "100%",
-    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface_container_lowest,
+    borderRadius: Radius.xl,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: Colors.surface_container,
+    marginBottom: 32,
     ...Shadows.level1,
-    marginBottom: Spacing.lg,
   },
-  foodTypeHeader: {
+  pantryHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
-  typeText: {
-    ...Typography.bodyMdSb,
-    color: Colors.on_surface,
-  },
-  fts: {
-    ...Typography.bodyMd,
+  pantryTitle: {
+    ...Typography.dataMono,
+    fontSize: 12,
     color: Colors.secondary,
   },
-  ftsButton: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: Radius.pill,
-    borderColor: Colors.surface_variant,
-    backgroundColor: Colors.surface,
-  },
-  activeType: {
-    backgroundColor: Colors.primary_container,
-    borderColor: Colors.on_primary,
-  },
-  activeTypeText: {
-    color: Colors.on_primary_container,
-  },
-  inputBox: {
+  chipRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    paddingHorizontal: 16,
+    flexWrap: "wrap", // The magic trick you learned earlier!
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderColor: Colors.surface_variant,
-    borderRadius: Radius.md,
-  },
-  input: {
-    flex: 1,
-    color: Colors.on_surface,
-    ...Typography.bodyMd,
-  },
-  checkBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 12,
+    backgroundColor: Colors.surface_container,
+    borderRadius: Radius.pill,
     borderWidth: 1,
-    borderRadius: Radius.md,
-    width: "47%",
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderColor: Colors.surface_variant,
-    backgroundColor: Colors.background,
+    borderColor: Colors.surface_dim,
   },
-  allergyText: {
-    ...Typography.bodyMd,
+  chipText: {
+    ...Typography.dataMono,
+    fontSize: 12,
     color: Colors.on_surface,
   },
-  details: {
-    minHeight: 120,
+  cancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: Radius.pill,
   },
-  generateButton: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.md,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    backgroundColor: Colors.primary_container,
-    marginTop: Spacing.md,
+  cancelText: {
+    ...Typography.bodyMdSb,
+    color: Colors.secondary,
   },
 });

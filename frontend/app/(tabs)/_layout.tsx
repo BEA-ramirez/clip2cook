@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, TouchableOpacity } from "react-native";
+import { Platform, View } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
 import { Colors, Typography } from "@/constants/theme";
 import {
@@ -8,8 +8,8 @@ import {
   Sparkles,
   BookOpenText,
   User,
-  Search,
-  Menu,
+  UtensilsCrossed,
+  CircleUser,
 } from "lucide-react-native";
 
 export default function TabLayout() {
@@ -48,6 +48,13 @@ export default function TabLayout() {
         options={{
           title: "Extract",
           tabBarIcon: ({ color }) => <Sparkles size={20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: "Cookbook",
+          tabBarIcon: ({ color }) => <BookOpenText size={20} color={color} />,
           headerTitle: "Clip2Cook",
           headerTitleAlign: "center",
           headerShown: true,
@@ -56,26 +63,23 @@ export default function TabLayout() {
             color: Colors.primary,
           },
           headerStyle: {
-            backgroundColor: "#fdfefe",
+            backgroundColor: Colors.background,
           },
           headerShadowVisible: false,
           headerLeft: () => (
-            <TouchableOpacity style={{ paddingLeft: 20 }}>
-              <Menu size={24} color={Colors.on_primary_fixed} />
-            </TouchableOpacity>
+            <View style={{ paddingLeft: 20 }}>
+              <UtensilsCrossed size={22} color={Colors.primary} />
+            </View>
           ),
           headerRight: () => (
-            <TouchableOpacity style={{ paddingRight: 20 }}>
-              <Search size={24} color={Colors.on_primary_fixed} />
-            </TouchableOpacity>
+            <View
+              style={{
+                padding: 20,
+              }}
+            >
+              <CircleUser size={24} color={Colors.primary} />
+            </View>
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          title: "Cookbook",
-          tabBarIcon: ({ color }) => <BookOpenText size={20} color={color} />,
         }}
       />
       <Tabs.Screen

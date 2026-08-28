@@ -1,21 +1,5 @@
-import {
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  Touchable,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Colors,
-  Spacing,
-  Typography,
-  Radius,
-  Shadows,
-} from "@/constants/theme";
+import { StyleSheet, View, Text, ScrollView } from "react-native";
+import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
 import ExtractInput from "@/components/extract/extract-input";
 import PantryChef from "@/components/extract/pantry-chef";
 import { Clipboard, Cpu, CookingPot } from "lucide-react-native";

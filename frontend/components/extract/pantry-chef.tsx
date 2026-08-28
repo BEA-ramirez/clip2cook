@@ -33,7 +33,7 @@ export default function PantryChef() {
         </Text>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push("/loading/generate-loading")}
+          onPress={() => router.push("/create/generate-recipe")}
         >
           <Pencil color={Colors.primary} size={22} />
           <Text style={styles.buttonText}>Start Typing</Text>

@@ -1,6 +1,7 @@
 import { View, StyleSheet, Text, Image, TouchableOpacity } from "react-native";
 import { Colors, Radius, Typography, Shadows } from "@/constants/theme";
 import { Clock4, Sparkles } from "lucide-react-native";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 type Recipe = {
   title: string;
@@ -34,6 +35,13 @@ export default function RecipeCard({ recipe }: { recipe: Recipe }) {
           </View>
         </View>
       </View>
+      <View style={styles.cloud}>
+        <MaterialCommunityIcons
+          name="cloud-check-variant"
+          size={20}
+          color="white"
+        />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -57,7 +65,8 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     paddingHorizontal: 14,
-    paddingVertical: 20,
+    paddingVertical: 22,
+    paddingBottom: 32,
     gap: 8,
   },
   title: {
@@ -96,5 +105,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     backgroundColor: Colors.primary_fixed,
+  },
+  cloud: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: Colors.inverse_surface,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.xl,
   },
 });
