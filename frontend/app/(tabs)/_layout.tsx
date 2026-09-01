@@ -87,6 +87,31 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => <User size={20} color={color} />,
+          headerTitle: "Clip2Cook",
+          headerTitleAlign: "center",
+          headerShown: true,
+          headerTitleStyle: {
+            ...Typography.headlineLg,
+            color: Colors.primary,
+          },
+          headerStyle: {
+            backgroundColor: Colors.background,
+          },
+          headerShadowVisible: false,
+          headerLeft: () => (
+            <View style={{ paddingLeft: 20 }}>
+              <UtensilsCrossed size={22} color={Colors.primary} />
+            </View>
+          ),
+          headerRight: () => (
+            <View
+              style={{
+                padding: 20,
+              }}
+            >
+              <CircleUser size={24} color={Colors.primary} />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen

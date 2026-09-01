@@ -1,3 +1,10 @@
-- Components created today in extract tab page:
-     - generate recipe loading page
-     - some components in saved tab
+- Components created in frontend:
+     - recipe details
+     - profile page
+     - login/signup page
+     - screen awake mode
+- Installed tools
+     - frontend: tanstack query, expo-sqlite
+     - backend: yt-dlp, redis, arq, httpx, supabase, trafilatura, instructor
+- Backend:
+     - Connected to supabase

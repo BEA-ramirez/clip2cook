@@ -75,7 +75,7 @@ export default function RootLayout() {
               options={{
                 headerShown: false,
                 title: "New Recipe",
-                presentation: "modal", // Slides up from bottom!
+                presentation: "modal",
               }}
             />
             <Stack.Screen
@@ -83,6 +83,13 @@ export default function RootLayout() {
               options={{
                 headerShown: false,
                 title: "View Recipe",
+                presentation: "modal",
+              }}
+            />
+            <Stack.Screen
+              name="recipe/[slug]"
+              options={{
+                headerShown: false,
                 presentation: "modal", // Slides up from bottom!
               }}
             />

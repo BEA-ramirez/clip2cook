@@ -2,6 +2,7 @@ import { View, StyleSheet, Text, Image, TouchableOpacity } from "react-native";
 import { Colors, Radius, Typography, Shadows } from "@/constants/theme";
 import { Clock4, Sparkles } from "lucide-react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useRouter } from "expo-router";
 
 type Recipe = {
   title: string;
@@ -11,8 +12,18 @@ type Recipe = {
 };
 
 export default function RecipeCard({ recipe }: { recipe: Recipe }) {
+  const router = useRouter();
+  const slug = "recipe-example";
   return (
-    <TouchableOpacity style={styles.container}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={() => {
+        router.push({
+          pathname: "/recipe/[slug]",
+          params: { slug: "recipe-example" },
+        });
+      }}
+    >
       <Image
         source={{
           uri: recipe.image,

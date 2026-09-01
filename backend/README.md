@@ -154,3 +154,49 @@ method: "DELETE" // DELETE requests also don't take a body property
 const result = await response.json();
 console.log(result.message); // "Recipe rec_999 was removed"
 };
+
+Let's plan out your backend architecture, address your authentication question, and fill in the missing architectural pieces for your AI pipelines.
+
+1. Authentication Strategy
+   Do not build your own JWT system. Since you are using Supabase for your database, you should absolutely use Supabase Auth.
+
+Supabase Auth handles the heavy lifting (Google/Apple login, password resets, token refreshing) and issues standard JWTs. In your FastAPI backend, you simply write a dependency that reads the Authorization header, verifies the Supabase JWT signature, and identifies the user. Furthermore, using Supabase Auth allows you to use PostgreSQL Row Level Security (RLS) to instantly secure your database tables.
+
+2. Database Architecture (Supabase)
+   Because recipes have multiple ingredients and steps, a relational SQL structure is perfect. Here is a high-level schema tailored to the UI we built:
+
+users: Extends Supabase's built-in auth. (Columns: id, username, avatar_url).
+
+recipes: The core table. (Columns: id, user_id, title, description, source_url, prep_time, bake_time, temp, yield, image_url, is_ai_generated).
+
+ingredients: Linked to recipes. (Columns: id, recipe_id, qty, unit, name, weight_grams).
+
+instructions: Linked to recipes. (Columns: id, recipe_id, step_number, description).
+
+tags: Linked to recipes for easy filtering. (Columns: id, recipe_id, tag_name).
+
+pantry: For your new generation feature. (Columns: id, user_id, ingredient_name).
+
+3. The AI Pipelines & Missing Tools
+   Scraping TikTok, Instagram, and blogs is wildly different from YouTube. Furthermore, AI generation takes time (sometimes 10–30 seconds). You cannot force a mobile app to wait on a standard HTTP request for 30 seconds without risking network timeouts.
+
+The missing tools you need:
+
+An Async Task Queue (Celery or ARQ): When a user clicks "Extract" or "Generate", FastAPI should instantly return a "Job ID" and pass the heavy AI processing to a background worker. The mobile app will use TanStack Query to poll that Job ID until the recipe is ready.
+
+Universal Scraper (yt-dlp): Believe it or not, yt-dlp works wonderfully for downloading metadata and audio from TikTok, Instagram Reels, and Facebook Video, not just YouTube.
+
+Text Scraper (newspaper3k or BeautifulSoup): For traditional food blogs and articles to strip away the ads and extract pure text.
+
+Structured Output Enforcer (Pydantic): When you ask the LLM to generate or extract a recipe, you must force it to return strict JSON that matches your database schema. FastAPI's Pydantic works perfectly with modern LLM structured outputs.
+
+4. FastAPI & TanStack Query Synergy
+   To make TanStack Query work beautifully, design your FastAPI endpoints as clean REST resources. TanStack Query thrives on predictable URLs.
+
+GET /api/recipes (TanStack caches as ['recipes'])
+
+GET /api/recipes/{id} (TanStack caches as ['recipe', id])
+
+POST /api/generate (Returns a Job ID, triggering a polling query)
+
+By keeping your routes clean, TanStack Query will automatically handle background refetching, caching, and updating your UI instantly when a user edits a recipe.

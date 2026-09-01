@@ -9,6 +9,7 @@ import {
 import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
 import { Search, SlidersHorizontal } from "lucide-react-native";
 import CategoryPillsV2 from "@/components/saved/category-pills-v2";
+import { router, useRouter } from "expo-router";
 
 export default function SavedRecipesScreen() {
   return (
@@ -25,7 +26,10 @@ export default function SavedRecipesScreen() {
             style={styles.searchText}
           />
         </View>
-        <TouchableOpacity style={styles.filterBtn}>
+        <TouchableOpacity
+          style={styles.filterBtn}
+          onPress={() => router.push("/recipe/[slug]/edit")}
+        >
           <SlidersHorizontal size={24} color={Colors.on_surface_variant} />
         </TouchableOpacity>
       </View>
