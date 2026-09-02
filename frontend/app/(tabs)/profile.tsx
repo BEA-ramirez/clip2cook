@@ -18,8 +18,28 @@ import {
 } from "lucide-react-native";
 import { router, useRouter } from "expo-router";
 import { Colors } from "@/constants/theme";
+import Toast from "react-native-toast-message";
+import { supabase } from "@/utils/supabase";
 
 export default function ProfileScreen() {
+  const handleLogout = async () => {
+    // 1. Tell Supabase to destroy the token and end the session
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      Toast.show({
+        type: "error",
+        text1: "Logout Failed",
+        text2: error.message,
+      });
+      return;
+    }
+    Toast.show({
+      type: "info",
+      text1: "Logged Out",
+      text2: "See you next time, Chef!",
+    });
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -75,12 +95,19 @@ export default function ProfileScreen() {
             icon={<Download size={20} color={Colors.secondary} />}
             title="Export Data"
           />
-          <SettingRow
-            icon={<LogOut size={20} color={Colors.error} />}
-            title="Log Out"
-            isDestructive
-            isLast
-          />
+          <TouchableOpacity
+            style={[styles.settingRow, styles.settingRowBorder]}
+            activeOpacity={0.7}
+            onPress={handleLogout}
+          >
+            <View style={styles.settingRowLeft}>
+              <LogOut size={20} color={Colors.error} />
+              <Text style={[styles.settingRowTitle, { color: Colors.error }]}>
+                Logout
+              </Text>
+            </View>
+            <ChevronRight size={20} color={Colors.surface_variant} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -93,11 +120,13 @@ function SettingRow({
   title,
   isDestructive = false,
   isLast = false,
+  handleButtonPress = null,
 }: any) {
   return (
     <TouchableOpacity
       style={[styles.settingRow, !isLast && styles.settingRowBorder]}
       activeOpacity={0.7}
+      onPress={handleButtonPress}
     >
       <View style={styles.settingRowLeft}>
         {icon}

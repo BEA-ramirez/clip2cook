@@ -4,7 +4,7 @@ from app.services.youtube import process_youtube_url
 
 router = APIRouter()
 
-@router.post("/parse-recipe")
+@router.post("/")
 def parse_youtube_link(request: RecipeRequest):
      # pass the validated url to the service layer
      result = process_youtube_url(request.url)

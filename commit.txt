@@ -1,10 +1,6 @@
-- Components created in frontend:
-     - recipe details
-     - profile page
-     - login/signup page
-     - screen awake mode
-- Installed tools
-     - frontend: tanstack query, expo-sqlite
-     - backend: yt-dlp, redis, arq, httpx, supabase, trafilatura, instructor
-- Backend:
-     - Connected to supabase
+- frontend
+     - implemented login,signup,and logout functions
+     - partial middleware for login created
+- backend
+     - recipe api created (CRUD)
+     - jwt checker (for validation and authentication) implemented

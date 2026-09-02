@@ -20,6 +20,16 @@ import {
   ChefHat,
 } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
+import { useMutation } from "@tanstack/react-query";
+import { supabase } from "@/utils/supabase";
+import Toast from "react-native-toast-message";
+
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+import * as QueryParams from "expo-auth-session/build/QueryParams";
+
+// This is required to make sure stray browser windows close properly
+WebBrowser.maybeCompleteAuthSession();
 
 // Extracted from your Tailwind config
 const Colors = {
@@ -42,11 +52,112 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const authMutation = useMutation({
+    mutationFn: async () => {
+      if (!email || !password) {
+        throw new Error("Email and password are required.");
+      }
+      if (isLoginTab) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      if (isLoginTab) {
+        Toast.show({
+          type: "success",
+          text1: "Welcome back Chef!",
+          text2: "Loading your recipes...",
+        });
+      } else {
+        Toast.show({
+          type: "success",
+          text1: "Account created!",
+          text2: "Please check your email to verify your account.",
+        });
+      }
+    },
+    onError: (error: any) => {
+      Toast.show({
+        type: "error",
+        text1: "Authentication Failed",
+        text2: error.message || "An unexpected error occurred.",
+      });
+    },
+  });
+
+  const googleMutation = useMutation({
+    mutationFn: async () => {
+      // Create the deep link back to our app (handles both Expo Go and compiled apps)
+      const redirectUrl = Linking.createURL("/auth");
+      console.log("MY EXPO REDIRECT URL:", redirectUrl);
+      // Ask Supabase to generate the secure Google Login URL
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true, // Tell Supabase we are handling the browser natively
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error("Could not get Google auth URL.");
+
+      // Open the secure in-app browser to let the user sign in
+      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+      // Extract the tokens from the URL when the browser bounces back
+      if (res.type === "success") {
+        const { params, errorCode } = QueryParams.getQueryParams(res.url);
+
+        if (errorCode) throw new Error(errorCode);
+        if (!params.access_token) throw new Error("No access token found.");
+
+        // Hand the extracted tokens to Supabase to establish the session locally
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+      } else {
+        throw new Error("Sign-in was cancelled.");
+      }
+    },
+    onSuccess: () => {
+      Toast.show({
+        type: "success",
+        text1: "Google Sign-In Successful!",
+        text2: "Loading your cookbooks...",
+      });
+    },
+    onError: (error: any) => {
+      if (error.message !== "Sign-in was cancelled.") {
+        Toast.show({
+          type: "error",
+          text1: "Google Sign-In Failed",
+          text2: error.message,
+        });
+      }
+    },
+  });
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        enabled={Platform.OS === "ios"}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -160,13 +271,24 @@ export default function LoginScreen() {
 
                 {/* Primary Button */}
                 <TouchableOpacity
-                  style={styles.primaryButton}
+                  style={[
+                    styles.primaryButton,
+                    authMutation.isPending && { opacity: 0.7 },
+                  ]}
                   activeOpacity={0.8}
+                  onPress={() => authMutation.mutate()}
+                  disabled={authMutation.isPending}
                 >
                   <Text style={styles.primaryButtonText}>
-                    {isLoginTab ? "Login" : "Sign Up"}
+                    {authMutation.isPending
+                      ? "Please wait..."
+                      : isLoginTab
+                        ? "Login"
+                        : "Sign Up"}
                   </Text>
-                  <ArrowRight size={20} color={Colors.on_primary_container} />
+                  {!authMutation.isPending && (
+                    <ArrowRight size={20} color={Colors.on_primary_container} />
+                  )}
                 </TouchableOpacity>
               </View>
 
@@ -180,11 +302,18 @@ export default function LoginScreen() {
               {/* SOCIAL LOGINS */}
               <View style={styles.socialRow}>
                 <TouchableOpacity
-                  style={styles.socialButton}
+                  style={[
+                    styles.socialButton,
+                    googleMutation.isPending && { opacity: 0.7 },
+                  ]}
                   activeOpacity={0.7}
+                  onPress={() => googleMutation.mutate()}
+                  disabled={googleMutation.isPending}
                 >
                   <GoogleIcon />
-                  <Text style={styles.socialButtonText}>Google</Text>
+                  <Text style={styles.socialButtonText}>
+                    {googleMutation.isPending ? "Connecting..." : "Google"}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -250,7 +379,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: "center",
-    justifyContent: "center",
     padding: 20,
   },
 
@@ -373,12 +501,6 @@ const styles = StyleSheet.create({
   },
   inputBoxFocused: {
     borderColor: Colors.primary_container,
-    // Emulates focus:ring
-    shadowColor: Colors.primary_container,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
   },
   inputIconLeft: {
     marginRight: 10,
