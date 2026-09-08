@@ -11,7 +11,7 @@ from uuid import UUID
 
 from app.api.auth import verify_supabase_token
 from app.core.supabase import supabase
-from app.schemas.recipe import RecipeCreate, RecipeResponse, RecipeUpdate
+from app.schemas.recipe import RecipeCreate, RecipeResponse
 
 router = APIRouter()
 
@@ -57,19 +57,19 @@ async def create_recipe(recipe: RecipeCreate, user_id: str = Depends(verify_supa
           ing_data = [{**ing.model_dump(), "recipe_id": recipe_id} for ing in recipe.ingredients]
           supabase.table("ingredients").insert(ing_data).execute()
         
-    if recipe.instructions:
+     if recipe.instructions:
           inst_data = [{**inst.model_dump(), "recipe_id": recipe_id} for inst in recipe.instructions]
           supabase.table("instructions").insert(inst_data).execute()
         
-    if recipe.equipment:
+     if recipe.equipment:
           eq_data = [{**eq.model_dump(), "recipe_id": recipe_id} for eq in recipe.equipment]
           supabase.table("equipment").insert(eq_data).execute()
         
-    if recipe.tags:
+     if recipe.tags:
           tag_data = [{"tag_name": tag, "recipe_id": recipe_id} for tag in recipe.tags]
           supabase.table("tags").insert(tag_data).execute()
         
-    return {"status": "success", "recipe_id": recipe_id}
+     return {"status": "success", "recipe_id": recipe_id}
 
 
 @router.delete("/{recipe_id}")

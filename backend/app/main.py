@@ -7,7 +7,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import parse, recipes
+from app.api import parse, recipe
 
 
 # this creates the main app instance that the uvicorn will run
@@ -28,7 +28,7 @@ app.add_middleware(
     allow_headers=["*"],    # allows all headers
 )
 app.include_router(
-    recipes.router, 
+    recipe.router, 
     prefix="/api/v1/recipes", 
     tags=["Recipes - CRUD"]
 )

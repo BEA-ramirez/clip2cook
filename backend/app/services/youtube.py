@@ -13,8 +13,6 @@ def extract_video_id(url: str) -> str|None:
      return match.group(1) if match else None
 
 
-
-
 def get_native_transcript(video_id: str) -> str | None:
     """
     Primary Path: Attempts to fetch native YouTube captions.

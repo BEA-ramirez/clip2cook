@@ -28,7 +28,14 @@ class RecipeSchema(BaseModel):
      bake_time_minutes: int|None = Field(None, description="The baking time inside the oven in minutes, if applicable")
      temp_or_heat: str|None = Field(None, description="The temperature or heat level, e.g., '350°F', 'medium heat'. Return null if none.")
      ingredients: list[Ingredients] = Field(..., description="A list of ingredients for the recipe")
-     instructions: list[str] = Field(..., description="A list of step-by-step instructions for the recipe")
+     instructions: list[str] = Field(
+        description=(
+            "A list of step-by-step instructions. Each step MUST start with a short, 2-to-5 word title, "
+            "followed immediately by a period, a space, and then the detailed instruction. "
+            "Example: 'Prepare the marinade. In a large bowl, whisk together the soy sauce, garlic, and ginger until combined.'"
+        )
+    )
+     is_complete: bool = Field(..., description="Return True if the text provided a full recipe. Return False if steps or quantities are missing and you need to watch the video.")
 
 # functions that talks to the Gemini API
 def extract_recipe_from_text(transcript: str) -> dict:
@@ -67,3 +74,35 @@ def extract_recipe_from_text(transcript: str) -> dict:
 
      
 
+clientVid = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+# --- VIDEO EXTRACTION (For TikTok, IG, YT Shorts) ---
+def extract_recipe_from_video(video_path: str, caption: str) -> dict:
+     """Heavy Path: Uploads an mp4, extracts the recipe, and deletes the video."""
+     print("Uploading video to Gemini File API...")
+     
+     # Upload the physical video file to Google's servers
+     video_file = clientVid.files.upload(file=video_path)
+     
+     print("Extracting recipe from video and caption...")
+     prompt = f"Watch this video and read the creator's caption. Combine the visual steps, spoken audio, and text caption to extract the complete recipe. If no quantities are mentioned, use best culinary judgment or write 'to taste'.\n\nCreator Caption: {caption}"
+     
+     try:
+          # 2. Feed BOTH the video file and the text prompt to the model
+          response = clientVid.models.generate_content(
+               model='gemini-3.5-flash',
+               contents=[video_file, prompt],
+               config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=RecipeSchema,
+                    temperature=0.2,
+                    system_instruction="You are an expert culinary assistant. Analyze the video and text to extract structured recipe data."
+               ),
+          )
+          
+          recipe_data = RecipeSchema.model_validate_json(response.text)
+          return recipe_data.model_dump()
+     finally:
+          # CRITICAL: Always delete the file from Google's servers immediately!
+          print("Cleaning up Gemini File API...")
+          clientVid.files.delete(name=video_file.name)

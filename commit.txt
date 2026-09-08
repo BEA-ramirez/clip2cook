@@ -1,6 +1,4 @@
-- frontend
-     - implemented login,signup,and logout functions
-     - partial middleware for login created
 - backend
-     - recipe api created (CRUD)
-     - jwt checker (for validation and authentication) implemented
+     - implemented the two tier ai pipeline
+     - improved the parsing logic
+     - now it can parse urls from Facebook, IG, Tiktok, YT, and blogs/articles  
