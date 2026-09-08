@@ -67,7 +67,7 @@ def process_youtube_url(url: str):
      transcript = get_native_transcript(video_id)
      if transcript:
           print("Successfully fetched native transcript. Routing to Gemini Flash")
-          print(transcript[:200] + "...")  # just show a snippet for now
+          print(transcript[:200] + "...")  # just show a snippet 
           
           recipe_data = extract_recipe_from_text(transcript)
           print("Success! Gemini extracted the recipe.")
