@@ -15,7 +15,7 @@ class IngredientBase(BaseModel):
 
 class InstructionBase(BaseModel):
      step_number: int
-     instruction: str
+     description: str
 
 class EquipmentBase(BaseModel):
      name: str
@@ -24,6 +24,7 @@ class RecipeCreate(BaseModel):
      title: str
      description: Optional[str] = None
      recipe_by: Optional[str] = None
+     platform: Optional[str] = None
      source_url: Optional[str] = None
      prep_time: Optional[str] = None
      bake_time: Optional[str] = None
@@ -32,7 +33,7 @@ class RecipeCreate(BaseModel):
      image_url: Optional[str] = None
      is_ai_generated: bool = False
      is_saved: bool = True
-     
+     notes: Optional[str] = None
      ingredients: List[IngredientBase] = []
      instructions: List[InstructionBase] = []
      equipment: List[EquipmentBase] = []

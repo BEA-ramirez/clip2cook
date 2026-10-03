@@ -103,9 +103,9 @@ export default function Clip2Cook() {
   );
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+    <View style={styles.safeArea}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerLeft}>
           <Image
             source={{
@@ -218,7 +218,10 @@ export default function Clip2Cook() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.addRecipeButton}>
+            <TouchableOpacity
+              style={styles.addRecipeButton}
+              onPress={() => router.push("/(recipes)/form")}
+            >
               <MaterialIcons name="add" size={20} color={Colors.on_primary} />
               <Text style={styles.addRecipeButtonText}>Add Recipe</Text>
             </TouchableOpacity>
@@ -280,7 +283,10 @@ export default function Clip2Cook() {
           <Text style={styles.ribbonCount}>
             {mockRecipes.length} saved recipes
           </Text>
-          <TouchableOpacity style={styles.ribbonAddAction}>
+          <TouchableOpacity
+            style={styles.ribbonAddAction}
+            onPress={() => router.push("/(recipes)/form")}
+          >
             <MaterialIcons name="add" size={16} color={Colors.primary} />
             <Text style={styles.ribbonAddText}>Add Recipe</Text>
           </TouchableOpacity>
@@ -296,14 +302,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   header: {
-    height: 56,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: Spacing.margin,
+    paddingBottom: Spacing.sm,
     backgroundColor: Colors.surface_container_lowest,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border_default,
+    zIndex: 10,
   },
   headerLeft: {
     flexDirection: "row",
@@ -455,7 +462,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   recipeTitle: {
-    ...Typography.bodyMd,
+    ...Typography.bodyMdBold,
     color: Colors.on_surface,
   },
   metaRow: {

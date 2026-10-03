@@ -1,4 +1,5 @@
-- backend
-     - implemented the two tier ai pipeline
-     - improved the parsing logic
-     - now it can parse urls from Facebook, IG, Tiktok, YT, and blogs/articles  
+- Wrote backend of CRUD recipe
+- Connected frontend to backend
+     - api
+     - hook
+     - zod

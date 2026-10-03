@@ -15,106 +15,95 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
+import { RecipeFormSchema, RecipeFormValues } from "@/schemas/recipe-schema";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useCreateRecipe } from "@/hooks/use-recipe";
 
 export default function RecipeFormScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { mutate: addRecipe, isPending: isSaving } = useCreateRecipe();
 
-  // --- FORM STATE ---
-  const [title, setTitle] = useState("Homestyle Chicken Adobo");
-  const [time, setTime] = useState("45 min");
-  const [servings, setServings] = useState("4 servings");
-  const [source, setSource] = useState("Family Notebook");
-
-  const [ingredients, setIngredients] = useState([
-    { id: "1", qty: "500 g", desc: "Chicken thighs or drumsticks" },
-    { id: "2", qty: "1/2 cup", desc: "Soy sauce (dark or regular)" },
-    { id: "3", qty: "1/2 cup", desc: "Cane vinegar or white vinegar" },
-    { id: "4", qty: "4 cloves", desc: "Garlic, crushed and peeled" },
-  ]);
-
-  const [equipment, setEquipment] = useState([
-    { id: "1", name: "Deep pot or Dutch oven", icon: "cookie" as any },
-    { id: "2", name: "Chef's knife", icon: "restaurant" as any },
-    { id: "3", name: "Cutting board", icon: "grid-view" as any },
-  ]);
   const [newTool, setNewTool] = useState("");
+  const [newTag, setNewTag] = useState("");
 
-  const [steps, setSteps] = useState([
-    {
-      id: "1",
-      text: "Cut chicken into serving pieces and pat dry thoroughly with paper towels.",
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<RecipeFormValues>({
+    resolver: zodResolver(RecipeFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      notes: "",
+      recipe_by: "",
+      platform: "",
+      source_url: "",
+      prep_time: "",
+      yield_amount: "",
+      ingredients: [],
+      instructions: [],
+      equipment: [],
+      tags: [],
     },
-    {
-      id: "2",
-      text: "In a bowl or pot, combine chicken, soy sauce, vinegar, garlic, bay leaf, and black peppercorns.",
-    },
-    {
-      id: "3",
-      text: "Bring to a boil over medium-high heat without stirring for 3 minutes.",
-    },
-  ]);
+  });
 
-  const [notes, setNotes] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const {
+    fields: ingredientFields,
+    append: appendIngredient,
+    remove: removeIngredient,
+  } = useFieldArray({ control, name: "ingredients" });
 
-  // --- HANDLERS ---
-  const addIngredient = () => {
-    setIngredients([
-      ...ingredients,
-      { id: Date.now().toString(), qty: "", desc: "" },
-    ]);
+  const {
+    fields: instructionFields,
+    append: appendInstruction,
+    remove: removeInstruction,
+  } = useFieldArray({ control, name: "instructions" });
+
+  const {
+    fields: equipmentFields,
+    append: appendEquipment,
+    remove: removeEquipment,
+  } = useFieldArray({ control, name: "equipment" });
+
+  const currentTags = watch("tags") || [];
+
+  const handleAddTag = (newTag: string) => {
+    if (newTag.trim() && !currentTags.includes(newTag.trim())) {
+      setValue("tags", [...currentTags, newTag.trim()]);
+      setNewTag("");
+    }
   };
 
-  const updateIngredient = (
-    id: string,
-    field: "qty" | "desc",
-    value: string,
-  ) => {
-    setIngredients(
-      ingredients.map((ing) =>
-        ing.id === id ? { ...ing, [field]: value } : ing,
-      ),
+  const handleRemoveTag = (index: number) => {
+    setValue(
+      "tags",
+      currentTags.filter((_, i) => i !== index),
     );
   };
 
-  const removeIngredient = (id: string) => {
-    setIngredients(ingredients.filter((ing) => ing.id !== id));
-  };
-
-  const addTool = () => {
-    if (newTool.trim()) {
-      setEquipment([
-        ...equipment,
-        { id: Date.now().toString(), name: newTool.trim(), icon: "kitchen" },
+  const handleAddEquipment = (newEquipment: string) => {
+    if (newEquipment.trim()) {
+      setValue("equipment", [
+        ...watch("equipment"),
+        { name: newEquipment.trim() },
       ]);
       setNewTool("");
     }
   };
 
-  const removeTool = (id: string) => {
-    setEquipment(equipment.filter((tool) => tool.id !== id));
-  };
+  const onSubmit = (validData: RecipeFormValues) => {
+    console.log("Passed Zod Validation! Ready for API:", validData);
 
-  const addStep = () => {
-    setSteps([...steps, { id: Date.now().toString(), text: "" }]);
-  };
-
-  const updateStep = (id: string, text: string) => {
-    setSteps(steps.map((step) => (step.id === id ? { ...step, text } : step)));
-  };
-
-  const removeStep = (id: string) => {
-    setSteps(steps.filter((step) => step.id !== id));
-  };
-
-  const handleSave = () => {
-    setIsSaving(true);
-    // Simulate API save
-    setTimeout(() => {
-      setIsSaving(false);
-      router.back(); // Flow 2: Return to main page
-    }, 1500);
+    addRecipe(validData, {
+      onSuccess: () => {
+        router.back();
+      },
+    });
   };
 
   return (
@@ -180,13 +169,24 @@ export default function RecipeFormScreen() {
           {/* TITLE & META BLOCK */}
           <View style={styles.card}>
             <Text style={styles.inputLabel}>RECIPE TITLE</Text>
-            <TextInput
-              style={styles.titleInput}
-              placeholder="e.g. Grandma's Lemon Butter Roast Chicken"
-              placeholderTextColor={Colors.outline_variant}
-              value={title}
-              onChangeText={setTitle}
+            <Controller
+              control={control}
+              name="title"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={styles.titleInput}
+                  placeholder="e.g. Butter Roast Chicken"
+                  placeholderTextColor={Colors.outline_variant}
+                  value={value}
+                  onChangeText={onChange}
+                />
+              )}
             />
+            {errors.title && (
+              <Text style={{ color: "red", fontSize: 12 }}>
+                {errors.title.message}
+              </Text>
+            )}
 
             <View style={styles.metaInputRow}>
               <View style={styles.metaInputBox}>
@@ -195,11 +195,17 @@ export default function RecipeFormScreen() {
                   size={16}
                   color={Colors.on_surface}
                 />
-                <TextInput
-                  style={styles.metaInput}
-                  placeholder="30 min"
-                  value={time}
-                  onChangeText={setTime}
+                <Controller
+                  control={control}
+                  name="prep_time"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={styles.metaInput}
+                      placeholder="30 min"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
                 />
               </View>
               <View style={styles.metaInputBox}>
@@ -208,11 +214,36 @@ export default function RecipeFormScreen() {
                   size={16}
                   color={Colors.on_surface}
                 />
-                <TextInput
-                  style={styles.metaInput}
-                  placeholder="4 servings"
-                  value={servings}
-                  onChangeText={setServings}
+                <Controller
+                  control={control}
+                  name="yield_amount"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={styles.metaInput}
+                      placeholder="4 servings"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+              </View>
+              <View style={styles.metaInputBox}>
+                <MaterialIcons
+                  name="person"
+                  size={16}
+                  color={Colors.on_surface}
+                />
+                <Controller
+                  control={control}
+                  name="recipe_by"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={styles.metaInput}
+                      placeholder="Recipe by"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
                 />
               </View>
               <View style={styles.metaInputBox}>
@@ -221,11 +252,36 @@ export default function RecipeFormScreen() {
                   size={16}
                   color={Colors.on_surface}
                 />
-                <TextInput
-                  style={styles.metaInput}
-                  placeholder="Source"
-                  value={source}
-                  onChangeText={setSource}
+                <Controller
+                  control={control}
+                  name="platform"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={styles.metaInput}
+                      placeholder="Source"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+              </View>
+              <View style={styles.metaInputBox}>
+                <MaterialIcons
+                  name="link"
+                  size={16}
+                  color={Colors.on_surface}
+                />
+                <Controller
+                  control={control}
+                  name="source_url"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={styles.metaInput}
+                      placeholder="Url"
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
                 />
               </View>
             </View>
@@ -254,7 +310,7 @@ export default function RecipeFormScreen() {
                 <Text style={styles.sectionTitle}>INGREDIENTS</Text>
                 <View style={styles.countBadge}>
                   <Text style={styles.countBadgeText}>
-                    {ingredients.length} items
+                    {ingredientFields.length} items
                   </Text>
                 </View>
               </View>
@@ -272,28 +328,62 @@ export default function RecipeFormScreen() {
             </Text>
 
             <View style={styles.listContainer}>
-              {ingredients.map((ing) => (
+              {ingredientFields.map((ing, index) => (
                 <View key={ing.id} style={styles.itemRow}>
                   <MaterialIcons
                     name="drag-indicator"
                     size={18}
                     color={Colors.outline_variant}
                   />
-                  <TextInput
-                    style={styles.qtyInput}
-                    placeholder="Qty"
-                    value={ing.qty}
-                    onChangeText={(v) => updateIngredient(ing.id, "qty", v)}
-                  />
-                  <TextInput
-                    style={styles.descInput}
-                    placeholder="Ingredient description"
-                    value={ing.desc}
-                    onChangeText={(v) => updateIngredient(ing.id, "desc", v)}
-                  />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        gap: 6,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Controller
+                        control={control}
+                        name={`ingredients.${index}.qty`}
+                        render={({ field: { onChange, onBlur, value } }) => (
+                          <TextInput
+                            style={styles.qtyInput}
+                            placeholder="Qty"
+                            value={value}
+                            onChangeText={onChange}
+                          />
+                        )}
+                      />
+                      <Controller
+                        control={control}
+                        name={`ingredients.${index}.unit`}
+                        render={({ field: { onChange, onBlur, value } }) => (
+                          <TextInput
+                            style={styles.qtyInput}
+                            placeholder="Unit"
+                            value={value}
+                            onChangeText={onChange}
+                          />
+                        )}
+                      />
+                    </View>
+                    <Controller
+                      control={control}
+                      name={`ingredients.${index}.name`}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <TextInput
+                          style={styles.descInput}
+                          placeholder="Ingredient name"
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      )}
+                    />
+                  </View>
                   <TouchableOpacity
                     style={styles.deleteBtn}
-                    onPress={() => removeIngredient(ing.id)}
+                    onPress={() => removeIngredient(index)}
                   >
                     <MaterialIcons
                       name="close"
@@ -305,7 +395,10 @@ export default function RecipeFormScreen() {
               ))}
             </View>
 
-            <TouchableOpacity style={styles.addButton} onPress={addIngredient}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => appendIngredient({ qty: "", unit: "", name: "" })}
+            >
               <MaterialIcons name="add" size={18} color={Colors.on_surface} />
               <Text style={styles.addButtonText}>Add Ingredient</Text>
             </TouchableOpacity>
@@ -319,15 +412,15 @@ export default function RecipeFormScreen() {
             </View>
 
             <View style={styles.tagsContainer}>
-              {equipment.map((tool) => (
+              {equipmentFields.map((tool, index) => (
                 <View key={tool.id} style={styles.toolChip}>
                   <MaterialIcons
-                    name={tool.icon}
+                    name="restaurant"
                     size={14}
                     color={Colors.on_surface}
                   />
                   <Text style={styles.toolChipText}>{tool.name}</Text>
-                  <TouchableOpacity onPress={() => removeTool(tool.id)}>
+                  <TouchableOpacity onPress={() => removeEquipment(index)}>
                     <MaterialIcons
                       name="close"
                       size={14}
@@ -343,10 +436,13 @@ export default function RecipeFormScreen() {
                   placeholder="New tool..."
                   value={newTool}
                   onChangeText={setNewTool}
-                  onSubmitEditing={addTool}
+                  onSubmitEditing={() => handleAddEquipment(newTool)}
                   returnKeyType="done"
                 />
-                <TouchableOpacity style={styles.addToolBtn} onPress={addTool}>
+                <TouchableOpacity
+                  style={styles.addToolBtn}
+                  onPress={() => handleAddEquipment(newTool)}
+                >
                   <MaterialIcons
                     name="add"
                     size={14}
@@ -364,7 +460,7 @@ export default function RecipeFormScreen() {
                 <Text style={styles.sectionTitle}>INSTRUCTIONS</Text>
                 <View style={styles.countBadge}>
                   <Text style={styles.countBadgeText}>
-                    {steps.length} steps
+                    {instructionFields.length} steps
                   </Text>
                 </View>
               </View>
@@ -374,7 +470,7 @@ export default function RecipeFormScreen() {
             </View>
 
             <View style={styles.listContainer}>
-              {steps.map((step, index) => (
+              {instructionFields.map((step, index) => (
                 <View key={step.id} style={styles.stepRow}>
                   <View style={styles.stepLeft}>
                     <View style={styles.stepNumberDot}>
@@ -387,13 +483,24 @@ export default function RecipeFormScreen() {
                     />
                   </View>
                   <View style={styles.stepRight}>
-                    <TextInput
-                      style={styles.stepInput}
-                      placeholder="Describe this step..."
-                      value={step.text}
-                      onChangeText={(v) => updateStep(step.id, v)}
-                      multiline
+                    <Controller
+                      control={control}
+                      name={`instructions.${index}.description`}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <TextInput
+                          style={styles.stepInput}
+                          placeholder="Describe this step..."
+                          value={value}
+                          onChangeText={onChange}
+                          multiline
+                        />
+                      )}
                     />
+                    {errors.instructions?.[index]?.description && (
+                      <Text style={{ color: "red", fontSize: 10 }}>
+                        Required
+                      </Text>
+                    )}
                     <View style={styles.stepActions}>
                       <TouchableOpacity style={styles.stepActionBtn}>
                         <MaterialIcons
@@ -407,7 +514,7 @@ export default function RecipeFormScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.stepDeleteBtn}
-                        onPress={() => removeStep(step.id)}
+                        onPress={() => removeInstruction(index)}
                       >
                         <MaterialIcons
                           name="delete"
@@ -421,10 +528,67 @@ export default function RecipeFormScreen() {
               ))}
             </View>
 
-            <TouchableOpacity style={styles.addButton} onPress={addStep}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() =>
+                appendInstruction({
+                  step_number: instructionFields.length + 1,
+                  description: "",
+                })
+              }
+            >
               <MaterialIcons name="add" size={18} color={Colors.on_surface} />
               <Text style={styles.addButtonText}>Add Step</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* TAGS SECTION */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.sectionTitle}>TAGS</Text>
+              <Text style={styles.sectionSubtitleInline}>Optional</Text>
+            </View>
+
+            <View style={styles.tagsContainer}>
+              {currentTags.map((tag, index) => (
+                <View key={index} style={styles.toolChip}>
+                  <MaterialIcons
+                    name="tag"
+                    size={14}
+                    color={Colors.on_surface}
+                  />
+                  <Text style={styles.toolChipText}>{tag}</Text>
+                  <TouchableOpacity onPress={() => handleRemoveTag(index)}>
+                    <MaterialIcons
+                      name="close"
+                      size={14}
+                      color={Colors.text_muted}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <View style={styles.addToolContainer}>
+                <TextInput
+                  style={styles.addToolInput}
+                  placeholder="New tag..."
+                  value={newTag}
+                  onChangeText={setNewTag}
+                  onSubmitEditing={() => handleAddTag(newTag)}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  style={styles.addToolBtn}
+                  onPress={() => handleAddTag(newTag)}
+                >
+                  <MaterialIcons
+                    name="add"
+                    size={14}
+                    color={Colors.on_surface}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
 
           {/* CHEF NOTES */}
@@ -433,12 +597,18 @@ export default function RecipeFormScreen() {
               <Text style={styles.sectionTitle}>KITCHEN NOTES & TIPS</Text>
               <Text style={styles.sectionSubtitleInline}>Linen margin</Text>
             </View>
-            <TextInput
-              style={styles.notesInput}
-              placeholder="e.g. Do not stir after pouring vinegar to prevent raw acidity; let simmer naturally."
-              value={notes}
-              onChangeText={setNotes}
-              multiline
+            <Controller
+              control={control}
+              name="notes"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={styles.notesInput}
+                  placeholder="e.g. Do not stir after pouring vinegar to prevent raw acidity; let simmer naturally."
+                  value={value}
+                  onChangeText={onChange}
+                  multiline
+                />
+              )}
             />
           </View>
 
@@ -446,7 +616,7 @@ export default function RecipeFormScreen() {
           <View style={styles.footerActions}>
             <TouchableOpacity
               style={styles.saveBtn}
-              onPress={handleSave}
+              onPress={handleSubmit(onSubmit)}
               disabled={isSaving}
             >
               {isSaving ? (

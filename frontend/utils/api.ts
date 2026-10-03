@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 
 // 👇 FIX: Changed 8081 to 8000
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://192.168.254.100:8000/api/v1";
+  process.env.EXPO_PUBLIC_API_URL || "http://192.168.254.106:8000/api/v1";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -17,12 +17,12 @@ apiClient.interceptors.request.use(async (config) => {
   const { data, error } = await supabase.auth.getSession();
   const token = data.session?.access_token;
 
-  // 1. ATTACH THE TOKEN FIRST
+  // ATTACH THE TOKEN FIRST
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // 2. THEN LOG THE RESULTS
+  // HEN LOG THE RESULTS
   console.log("=== 🚀 OUTGOING NETWORK REQUEST ===");
   console.log(
     " Supabase Auth Status:",

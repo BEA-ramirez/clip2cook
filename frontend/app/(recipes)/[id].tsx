@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   recipeMainTitle: {
-    ...Typography.displayMobile,
+    ...Typography.displayMobileBold,
     fontSize: 26, // override to match HTML mapping exactly
     color: Colors.on_surface,
   },
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   tag: {
-    backgroundColor: Colors.surface_container,
+    backgroundColor: Colors.surface_bright,
     borderWidth: 1,
     borderColor: Colors.border_default,
     paddingHorizontal: 8,
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   sectionTitle: {
-    ...Typography.headlineMd,
+    ...Typography.headlineTitle,
     color: Colors.on_surface,
   },
   counterText: {
@@ -764,7 +764,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    backgroundColor: Colors.surface_container,
+    backgroundColor: Colors.surface_bright,
     borderWidth: 1,
     borderColor: Colors.border_default,
     borderRadius: Radius.lg,
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: Spacing.md,
-    backgroundColor: Colors.surface_container,
+    backgroundColor: Colors.surface_bright,
     borderWidth: 1,
     borderColor: Colors.border_default,
     borderRadius: Radius.lg,
