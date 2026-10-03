@@ -1,44 +1,32 @@
 import os
-import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from dotenv import load_dotenv
+from app.core.supabase import supabase  
 
-load_dotenv()
-JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+security = HTTPBearer()
 
-security = HTTPBearer() # fastapi looks for the Authorization header and extracts the token
-
-def verify_supabase_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str :
+def verify_supabase_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
      """
-     Verifies the Supabase JWT and returns the user's ID (the 'sub' claim).
+     Verifies the Supabase JWT by asking the Supabase server directly, 
+     bypassing the need for manual PyJWT cryptography!
      """
      token = credentials.credentials
      try:
-          # decode and verify token
-          # supabase uses hs256 algorithm for JWT
-          payload = jwt.decode(
-               token,
-               JWT_SECRET,
-               algorithms=["HS256"],
-               audience="authenticated"
-          )
+          # Let the official Supabase client decode and verify the token
+          user_response = supabase.auth.get_user(token)
           
-          # the user's uuid is stored inside the subject's claim
-          user_id = payload.get("sub")
-          if not user_id:
+          if not user_response or not user_response.user:
                raise HTTPException(
-                    status_code=401,
-                    detail="Invalid token: missing user ID",
+                    status_code=401, 
+                    detail="Invalid token: User not found"
                )
-          return user_id
-     except jwt.ExpiredSignatureError:
+               
+          # Return the user's ID
+          return user_response.user.id
+          
+     except Exception as e:
+          print(f"🚨 Supabase Auth Error: {str(e)}")
           raise HTTPException(
                status_code=status.HTTP_401_UNAUTHORIZED,
-               detail="Token has expired",
-          )
-     except jwt.InvalidTokenError:
-          raise HTTPException(
-               status_code=status.HTTP_401_UNAUTHORIZED,
-               detail="Invalid authentication token",
+               detail="Invalid or expired authentication token",
           )

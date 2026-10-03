@@ -13,19 +13,20 @@ client = OpenAI(
 # define the exact JSON structure we want Gemini to return
 class Ingredients(BaseModel):
      name: str = Field(..., description="The name of the ingredient")
-     quantity: str = Field(..., description="The quantity of the ingredient")
-     unit: str = Field(..., description="The unit of measurement for the ingredient, cups, tbsp, grams, tsp, or to taste etc.")
+     quantity: str | None = Field(None, description="The quantity (e.g., '1', '1.5', '1/2'). If the recipe says 'to taste', 'a pinch', or 'a dash', set this to null and put that phrase in the 'unit' field.")
+     unit: str | None = Field(..., description="The unit of measurement for the ingredient, cups, tbsp, grams, tsp, or to taste, a pinch, a dash etc. Return null if none.")
      grams_amount: float|None = Field(None, description="The amount of the ingredient in grams. If not applicable or unable to calculate, return null.")
 
 class RecipeSchema(BaseModel):
      title: str = Field(..., description="The title of the recipe")
+     slug: str = Field(..., description="A URL-friendly string of the title. Lowercase, words separated by hyphens. Example: 'artisan-sourdough-bread'")
      recipe_by: str = Field(..., description="The author or source of the recipe")
      description: str = Field(..., description="A brief description of the recipe")
-     prep_time_minutes: int|None = Field(None, description="The preparation time in minutes, if mentioned")
+     prep_time_minutes: int|None = Field(None, description="The approximate preparation time in minutes. Must be an integer. For 1 hour, output 60. Return null if not mentioned.")
      servings: int = Field(..., description="The number of individual people this recipe feeds. Always return a pure integer, e.g., 4.")
-     yield_description: str | None = Field(None, description="The physical container or total batch size, e.g., 'One 9x9 inch baking pan', '2 dozen cookies', or '1 large loaf'. Return null if none.")
+     yield_amount: str | None = Field(None, description="The physical container or total batch size, e.g., 'One 9x9 inch baking pan', '2 dozen cookies', or '1 large loaf'. Return null if none.")
      equipment: list[str] = Field(..., description="Any specific pans, skillets, or baking dishes mentioned (e.g., '9x13 glass baking dish').")
-     bake_time_minutes: int|None = Field(None, description="The baking time inside the oven in minutes, if applicable")
+     bake_time_minutes: int|None = Field(None, description="The approximate baking time inside the oven in minutes. Must be an integer. For 1 hour, output 60. Return null if not mentioned.")
      temp_or_heat: str|None = Field(None, description="The temperature or heat level, e.g., '350°F', 'medium heat'. Return null if none.")
      ingredients: list[Ingredients] = Field(..., description="A list of ingredients for the recipe")
      instructions: list[str] = Field(
@@ -60,7 +61,7 @@ def extract_recipe_from_text(transcript: str) -> dict:
 
      # using gemini-2.0-flash
      response = client.chat.completions.create(
-          model="gemini-3.5-flash", # You can use whichever Gemini model name worked for you previously
+          model="gemini-3.5-flash-lite", # You can use whichever Gemini model name worked for you previously
           messages=[
                {"role": "system", "content": "You are a culinary AI. Always return raw JSON."},
                {"role": "user", "content": prompt}
@@ -90,7 +91,7 @@ def extract_recipe_from_video(video_path: str, caption: str) -> dict:
      try:
           # 2. Feed BOTH the video file and the text prompt to the model
           response = clientVid.models.generate_content(
-               model='gemini-3.5-flash',
+               model='gemini-3.5-flash-lite',
                contents=[video_file, prompt],
                config=types.GenerateContentConfig(
                     response_mime_type="application/json",

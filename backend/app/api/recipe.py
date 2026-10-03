@@ -41,35 +41,52 @@ async def get_recipe_details(recipe_id: UUID, user_id: str = Depends(verify_supa
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_recipe(recipe: RecipeCreate, user_id: str = Depends(verify_supabase_token)):
      """Create a new recipe along with all its nested components."""
-     
-     # strip out the nested list to only get the main recipe data
-     recipe_data = recipe.model_dump(exclude={"ingredients", "instructions", "equipment", "tags"})
-     recipe_data["user_id"] = user_id
-     
-     # insert the main recipe data and get id
-     new_recipe = supabase.table("recipes").insert(recipe_data).execute()
-     if not new_recipe.data:
-          raise HTTPException(status_code=400, detail="Failed to create recipe.")
-     
-     recipe_id = new_recipe.data[0]["id"]
-     
-     if recipe.ingredients:
-          ing_data = [{**ing.model_dump(), "recipe_id": recipe_id} for ing in recipe.ingredients]
-          supabase.table("ingredients").insert(ing_data).execute()
-        
-     if recipe.instructions:
-          inst_data = [{**inst.model_dump(), "recipe_id": recipe_id} for inst in recipe.instructions]
-          supabase.table("instructions").insert(inst_data).execute()
-        
-     if recipe.equipment:
-          eq_data = [{**eq.model_dump(), "recipe_id": recipe_id} for eq in recipe.equipment]
-          supabase.table("equipment").insert(eq_data).execute()
-        
-     if recipe.tags:
-          tag_data = [{"tag_name": tag, "recipe_id": recipe_id} for tag in recipe.tags]
-          supabase.table("tags").insert(tag_data).execute()
-        
-     return {"status": "success", "recipe_id": recipe_id}
+     try:
+          # strip out the nested list to only get the main recipe data
+          recipe_data = recipe.model_dump(exclude={"ingredients", "instructions", "equipment", "tags"})
+          recipe_data["user_id"] = user_id
+          
+          # 1. Insert Main Recipe
+          print("💾 Saving main recipe...")
+          new_recipe = supabase.table("recipes").insert(recipe_data).execute()
+          if not new_recipe.data:
+               raise HTTPException(status_code=400, detail="Failed to create recipe.")
+          
+          recipe_id = new_recipe.data[0]["id"]
+          
+          # 2. Insert Ingredients
+          if recipe.ingredients:
+               print("💾 Saving ingredients...")
+               ing_data = [{**ing.model_dump(), "recipe_id": recipe_id} for ing in recipe.ingredients]
+               supabase.table("ingredients").insert(ing_data).execute()
+               
+          # 3. Insert Instructions
+          if recipe.instructions:
+               print("💾 Saving instructions...")
+               inst_data = [{**inst.model_dump(), "recipe_id": recipe_id} for inst in recipe.instructions]
+               supabase.table("instructions").insert(inst_data).execute()
+               
+          # 4. Insert Equipment
+          if recipe.equipment:
+               print("💾 Saving equipment...")
+               eq_data = [{**eq.model_dump(), "recipe_id": recipe_id} for eq in recipe.equipment]
+               supabase.table("equipment").insert(eq_data).execute()
+               
+          # 5. Insert Tags
+          if recipe.tags:
+               print("💾 Saving tags...")
+               tag_data = [{"tag_name": tag, "recipe_id": recipe_id} for tag in recipe.tags]
+               supabase.table("tags").insert(tag_data).execute()
+               
+          print("✅ All data saved successfully!")
+          return {"status": "success", "recipe_id": recipe_id}
+
+     except Exception as e:
+          # 👇 THIS WILL REVEAL THE DATABASE CRASH!
+          error_msg = str(e)
+          print(f"\n🚨 DATABASE CRASH 🚨")
+          print(f"Details: {error_msg}\n")
+          raise HTTPException(status_code=500, detail=f"Database Error: {error_msg}")
 
 
 @router.delete("/{recipe_id}")

@@ -152,3 +152,5 @@ The recipe data structure:
 "Remove from the oven and let cool completely."
 ]
 }
+
+npx tree-node-cli -I "node_modules|.next|.git|dist|build"

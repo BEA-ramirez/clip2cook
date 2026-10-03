@@ -7,6 +7,8 @@ from app.services.web_scraper import scrape_article_text, WebScraperError
 from app.services.scraper import download_video_session, ScraperError
 from app.services.tiktok_api import download_tiktok_session, TikTokAPIError
 from app.services.ai_gemini import extract_recipe_from_text, extract_recipe_from_video
+from app.schemas.recipe import RecipeRequest, RecipeCreate
+from app.utils.mappers import map_gemini_to_db_schema
 
 # Uncomment once you are ready to enforce user tokens again
 # from app.api.auth import verify_supabase_token
@@ -40,7 +42,7 @@ def is_tiktok_url(url: str) -> bool:
     """Detects whether a URL is a TikTok video."""
     return "tiktok.com" in url
 
-@router.post("/extract")
+@router.post("/extract", response_model=RecipeCreate)
 def extract_recipe(
     request: RecipeRequest,
     # user_id: str = Depends(verify_supabase_token) # Reactivate when frontend auth is wired
@@ -82,18 +84,15 @@ def extract_recipe(
     if tier_1_text:
         print(f"[Tier 1] Asking Gemini to evaluate {source_type} completeness...")
         try:
-            recipe = extract_recipe_from_text(tier_1_text)
+            raw_ai_dict = extract_recipe_from_text(tier_1_text)
             
             # Safely extract 'is_complete' whether it's a dict or an object
-            is_complete = recipe.get("is_complete") if isinstance(recipe, dict) else getattr(recipe, "is_complete", False)
+            is_complete = raw_ai_dict.get("is_complete") if isinstance(raw_ai_dict, dict) else getattr(raw_ai_dict, "is_complete", False)
             
             if is_complete:
                 print(f"[Tier 1 Success] Recipe fully extracted from {source_type}!")
-                return {
-                    "status": "success",
-                    "source": source_type,
-                    "data": recipe
-                }
+                mapped_recipe = map_gemini_to_db_schema(raw_ai_dict, url)
+                return mapped_recipe
             else:
                 print(f"[Tier 1 Incomplete] Missing details in {source_type}.")
                 
@@ -120,12 +119,9 @@ def extract_recipe(
         print(f"[Tier 2] Bypassing with TikWM for: {url}")
         try:
             with download_tiktok_session(url) as (file_path, caption):
-                recipe = extract_recipe_from_video(file_path, caption)
-                return {
-                    "status": "success",
-                    "source": "tiktok_api",
-                    "data": recipe
-                }
+                raw_ai_dict = extract_recipe_from_video(file_path, caption)
+                mapped_recipe = map_gemini_to_db_schema(raw_ai_dict, url)
+                return mapped_recipe
         except TikTokAPIError as te:
             raise HTTPException(status_code=422, detail=str(te))
         except Exception as e:
@@ -136,12 +132,10 @@ def extract_recipe(
         print(f"[Tier 2] Downloading and analyzing video with yt-dlp for: {url}")
         try:
             with download_video_session(url) as (file_path, caption):
-                recipe = extract_recipe_from_video(file_path, caption)
-                return {
-                    "status": "success",
-                    "source": "video_multimodal",
-                    "data": recipe
-                }
+                raw_ai_dict = extract_recipe_from_video(file_path, caption)
+                mapped_recipe = map_gemini_to_db_schema(raw_ai_dict, url)
+                return mapped_recipe
+                
         except ScraperError as se:
             raise HTTPException(status_code=422, detail=f"Scraper error: {str(se)}")
         except Exception as e:

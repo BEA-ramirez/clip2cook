@@ -1,8 +1,9 @@
 import {
+  ThemeProvider,
   DarkTheme,
   DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+  useTheme,
+} from "expo-router/react-navigation";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -24,6 +25,22 @@ import { supabase } from "@/utils/supabase";
 import { Session } from "@supabase/supabase-js";
 import Toast from "react-native-toast-message";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+
+// Create the bridge between TanStack and the phone's hard drive
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+});
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    },
+  },
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -44,15 +61,8 @@ const customPaperTheme = {
   },
 };
 
-const queryClient = new QueryClient();
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAuthInitialized, setIsAuthInitialized] = useState(false);
-  const router = useRouter();
-  const segments = useSegments();
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -62,89 +72,37 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsAuthInitialized(true);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // routing guard
-  useEffect(() => {
-    if (!isAuthInitialized || !fontsLoaded) return;
-
-    const inAuthGroup = segments[0] === "auth";
-
-    if (!session && !inAuthGroup) {
-      // Not logged in -> Kick to auth screen
-      router.replace("/auth");
-    } else if (session && inAuthGroup) {
-      // Logged in -> Send to the main app
-      router.replace("/(tabs)");
-    }
-  }, [session, isAuthInitialized, fontsLoaded, segments, router]);
-
-  useEffect(() => {
-    if ((fontsLoaded || fontError) && isAuthInitialized) {
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError, isAuthInitialized]);
+  }, [fontsLoaded, fontError]);
 
-  // Do not render anything until fonts and auth are completely ready
-  if ((!fontsLoaded && !fontError) || !isAuthInitialized) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: asyncStoragePersister,
+        maxAge: 1000 * 60 * 60 * 24, // Match maxAge to gcTime (24 hours)
+      }}
+    >
       <SafeAreaProvider>
         <ThemeProvider
           value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
           <PaperProvider theme={customPaperTheme}>
             <Stack>
-              <Stack.Screen name="auth" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="modal"
-                options={{ presentation: "modal", title: "Modal" }}
-              />
-              <Stack.Screen
-                name="add-recipe"
-                options={{
-                  headerShown: false,
-                  title: "New Recipe",
-                  presentation: "modal",
-                }}
-              />
-              <Stack.Screen
-                name="view-recipe"
-                options={{
-                  headerShown: false,
-                  title: "View Recipe",
-                  presentation: "modal",
-                }}
-              />
-              <Stack.Screen
-                name="recipe/[slug]"
-                options={{
-                  headerShown: false,
-                  presentation: "modal", // Slides up from bottom!
-                }}
-              />
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(recipes)" options={{ headerShown: false }} />
             </Stack>
             <StatusBar style="auto" />
           </PaperProvider>
         </ThemeProvider>
         <Toast />
       </SafeAreaProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
