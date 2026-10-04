@@ -1,15 +1,19 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createRecipe } from "@/services/recipe-api";
+import { createRecipe, getRecipes, getRecipeById } from "@/services/recipe-api";
 import Toast from "react-native-toast-message";
-import { apiClient } from "@/utils/api";
 
 export function useRecipes() {
   return useQuery({
     queryKey: ["recipes"],
-    queryFn: async () => {
-      const response = await apiClient.get("/recipes/");
-      return response.data;
-    },
+    queryFn: getRecipes,
+  });
+}
+
+export function useRecipeById(id: string) {
+  return useQuery({
+    queryKey: ["recipe", id],
+    queryFn: () => getRecipeById(id),
+    enabled: !!id, // Only fetch if id is provided
   });
 }
 

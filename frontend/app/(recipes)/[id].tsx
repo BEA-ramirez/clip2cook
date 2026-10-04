@@ -6,106 +6,20 @@ import {
   StyleSheet,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import {
-  Colors,
-  Spacing,
-  Typography,
-  Radius,
-  Borders,
-} from "@/constants/theme"; // Adjust path
-
-// --- MOCK DATA ---
-// In a real app, you would fetch this based on the `id` param.
-const RECIPE_DATA = {
-  title: "Chicken Adobo",
-  time: "30 min",
-  servings: "4 servings",
-  source: "YouTube",
-  tags: ["#dinner", "#filipino", "#one-pot"],
-  ingredients: [
-    {
-      id: "1",
-      qty: "500 g",
-      name: "chicken (thighs or drumsticks)",
-      note: "bone-in or boneless, cut serving-sized",
-    },
-    {
-      id: "2",
-      qty: "1/2 cup",
-      name: "soy sauce",
-      note: "standard dark or regular brewed",
-    },
-    {
-      id: "3",
-      qty: "1/2 cup",
-      name: "cane vinegar",
-      note: "or distilled white vinegar",
-    },
-    {
-      id: "4",
-      qty: "4 cloves",
-      name: "garlic",
-      note: "crushed with flat of blade",
-    },
-    { id: "5", qty: "1", name: "dried bay leaf", note: "" },
-    { id: "6", qty: "1 tsp", name: "whole black peppercorns", note: "" },
-    {
-      id: "7",
-      qty: "1 tbsp",
-      name: "cooking oil",
-      note: "neutral (canola or vegetable)",
-    },
-  ],
-  equipment: [
-    "Deep pot or Dutch oven",
-    "Chef's knife",
-    "Cutting board",
-    "Measuring cups & spoons",
-  ],
-  steps: [
-    {
-      id: "1",
-      text: "Cut the chicken into serving-sized pieces and pat dry thoroughly with paper towels.",
-      note: "Dry surface ensures better sauce adhesion.",
-    },
-    {
-      id: "2",
-      text: "In a bowl or directly in the pot, combine chicken, soy sauce, vinegar, crushed garlic, bay leaf, and black peppercorns.",
-      note: "Optional: Marinate 15–30 min if time permits.",
-    },
-    {
-      id: "3",
-      text: "Bring to a boil over medium-high heat without stirring for the first 3 minutes.",
-      note: "Crucial: Do not stir raw vinegar so the acidity cooks down smoothly.",
-      isCrucial: true,
-    },
-    {
-      id: "4",
-      text: "Reduce heat to low, cover with tight lid, and simmer for 20–25 minutes until chicken is tender and thoroughly cooked through.",
-      note: "",
-    },
-    {
-      id: "5",
-      text: "Uncover, increase heat slightly, and simmer uncovered for 5 minutes until the sauce reduces and thickens to your preference.",
-      note: "Stir occasionally to coat chicken pieces in glossy glaze.",
-    },
-    {
-      id: "6",
-      text: "Serve piping hot with freshly steamed white jasmine rice. Spoon extra sauce over the top.",
-      note: "",
-    },
-  ],
-};
+import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
+import { useRecipeById } from "@/hooks/use-recipe";
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams(); // Use this to fetch data if needed
+  const { id } = useLocalSearchParams();
+  const { data: recipe, isLoading, isError } = useRecipeById(id as string);
 
   // Interactive States
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
@@ -137,6 +51,38 @@ export default function RecipeDetailScreen() {
     setCopiedStatus(true);
     setTimeout(() => setCopiedStatus(false), 2000);
   };
+
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (isError || !recipe) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Text style={{ color: "red" }}>Failed to load recipe.</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginTop: 16 }}
+        >
+          <Text style={{ color: Colors.primary }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -222,7 +168,7 @@ export default function RecipeDetailScreen() {
           <View style={styles.noteHeaderTop}>
             <View>
               <Text style={styles.eyebrow}>CULINARY NOTE #042</Text>
-              <Text style={styles.recipeMainTitle}>{RECIPE_DATA.title}</Text>
+              <Text style={styles.recipeMainTitle}>{recipe?.title}</Text>
             </View>
             <View style={styles.pinDot} />
           </View>
@@ -234,33 +180,40 @@ export default function RecipeDetailScreen() {
                 size={16}
                 color={Colors.text_muted}
               />
-              <Text style={styles.metaText}>{RECIPE_DATA.time}</Text>
+              <Text style={styles.metaText}>{recipe?.prep_time || "--"}</Text>
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
               <MaterialIcons name="group" size={16} color={Colors.text_muted} />
-              <Text style={styles.metaText}>{RECIPE_DATA.servings}</Text>
+              <Text style={styles.metaText}>
+                {recipe?.yield_amount || "--"}
+              </Text>
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
               <Text style={styles.metaTextBold}>
-                Source: {RECIPE_DATA.source}
+                Source:{" "}
+                {recipe?.platform || recipe?.recipe_by || "Manual Entry"}
               </Text>
-              <MaterialIcons
-                name="north-east"
-                size={14}
-                color={Colors.text_muted}
-              />
+              {recipe?.source_url ? (
+                <MaterialIcons
+                  name="north-east"
+                  size={14}
+                  color={Colors.text_muted}
+                />
+              ) : null}
             </View>
           </View>
 
-          <View style={styles.tagsContainer}>
-            {RECIPE_DATA.tags.map((tag) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
+          {recipe.tags && recipe.tags.length > 0 && (
+            <View style={styles.tagsContainer}>
+              {recipe?.tags.map((tag: any) => (
+                <View key={tag.id} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag.tag_name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* ACTIVE TIMER (Conditional) */}
@@ -283,184 +236,192 @@ export default function RecipeDetailScreen() {
         )}
 
         {/* INGREDIENTS SECTION */}
-        <View style={styles.surfaceCard}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionNotch} />
-              <Text style={styles.sectionTitle}>INGREDIENTS</Text>
+        {recipe.ingredients && recipe.ingredients.length > 0 && (
+          <View style={styles.surfaceCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={styles.sectionNotch} />
+                <Text style={styles.sectionTitle}>INGREDIENTS</Text>
+              </View>
+              <Text style={styles.counterText}>
+                {checkedIngredients.size} / {recipe?.ingredients.length} ready
+              </Text>
             </View>
-            <Text style={styles.counterText}>
-              {checkedIngredients.size} / {RECIPE_DATA.ingredients.length} ready
+            <Text style={styles.sectionDesc}>
+              Tap to check off as you prepare
             </Text>
-          </View>
-          <Text style={styles.sectionDesc}>
-            Tap to check off as you prepare
-          </Text>
 
-          <View style={styles.listContainer}>
-            {RECIPE_DATA.ingredients.map((ing) => {
-              const isChecked = checkedIngredients.has(ing.id);
-              return (
-                <TouchableOpacity
-                  key={ing.id}
-                  style={styles.checkRow}
-                  onPress={() => toggleIngredient(ing.id)}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons
-                    name={isChecked ? "check-box" : "check-box-outline-blank"}
-                    size={20}
-                    color={isChecked ? Colors.primary : Colors.text_muted}
-                    style={styles.checkBoxIcon}
-                  />
-                  <View style={styles.checkTextContainer}>
+            <View style={styles.listContainer}>
+              {recipe?.ingredients.map((ing: any) => {
+                const isChecked = checkedIngredients.has(ing.id);
+                return (
+                  <TouchableOpacity
+                    key={ing.id}
+                    style={styles.checkRow}
+                    onPress={() => toggleIngredient(ing.id)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons
+                      name={isChecked ? "check-box" : "check-box-outline-blank"}
+                      size={20}
+                      color={isChecked ? Colors.primary : Colors.text_muted}
+                      style={styles.checkBoxIcon}
+                    />
+                    <View style={styles.checkTextContainer}>
+                      <Text
+                        style={[
+                          styles.ingMainText,
+                          isChecked && styles.textStrikethrough,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.ingQty,
+                            isChecked && styles.textStrikethrough,
+                          ]}
+                        >
+                          {ing.qty ? `${ing.qty} ` : ""}
+                          {ing.unit ? `${ing.unit} ` : ""}
+                        </Text>
+                        {ing.name}
+                      </Text>
+                      {ing.note ? (
+                        <Text
+                          style={[
+                            styles.ingNoteText,
+                            isChecked && styles.textStrikethrough,
+                          ]}
+                        >
+                          {ing.note}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* EQUIPMENT SECTION */}
+        {recipe.equipment && recipe.equipment.length > 0 && (
+          <View style={styles.surfaceCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={styles.sectionNotch} />
+                <Text style={styles.sectionTitle}>EQUIPMENT</Text>
+              </View>
+            </View>
+            <Text style={styles.sectionDesc}>Ready station before heating</Text>
+
+            <View style={styles.equipGrid}>
+              {recipe?.equipment.map((item: any, idx: number) => {
+                const isChecked = checkedEquipment.has(item.id);
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.equipBox}
+                    onPress={() => toggleEquipment(idx)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons
+                      name={isChecked ? "check-box" : "check-box-outline-blank"}
+                      size={18}
+                      color={isChecked ? Colors.primary : Colors.text_muted}
+                    />
                     <Text
                       style={[
-                        styles.ingMainText,
+                        styles.equipText,
                         isChecked && styles.textStrikethrough,
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.ingQty,
-                          isChecked && styles.textStrikethrough,
-                        ]}
-                      >
-                        {ing.qty}{" "}
-                      </Text>
-                      {ing.name}
+                      {item.name}
                     </Text>
-                    {ing.note ? (
-                      <Text
-                        style={[
-                          styles.ingNoteText,
-                          isChecked && styles.textStrikethrough,
-                        ]}
-                      >
-                        {ing.note}
-                      </Text>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* EQUIPMENT SECTION */}
-        <View style={styles.surfaceCard}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionNotch} />
-              <Text style={styles.sectionTitle}>EQUIPMENT</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
-          <Text style={styles.sectionDesc}>Ready station before heating</Text>
-
-          <View style={styles.equipGrid}>
-            {RECIPE_DATA.equipment.map((item, idx) => {
-              const isChecked = checkedEquipment.has(idx);
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.equipBox}
-                  onPress={() => toggleEquipment(idx)}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons
-                    name={isChecked ? "check-box" : "check-box-outline-blank"}
-                    size={18}
-                    color={isChecked ? Colors.primary : Colors.text_muted}
-                  />
-                  <Text
-                    style={[
-                      styles.equipText,
-                      isChecked && styles.textStrikethrough,
-                    ]}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        )}
 
         {/* INSTRUCTIONS SECTION */}
-        <View style={styles.surfaceCard}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionNotch} />
-              <Text style={styles.sectionTitle}>INSTRUCTIONS</Text>
+        {recipe.instructions && recipe.instructions.length > 0 && (
+          <View style={styles.surfaceCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={styles.sectionNotch} />
+                <Text style={styles.sectionTitle}>INSTRUCTIONS</Text>
+              </View>
+              <Text style={styles.utilityText}>Step-by-step utility</Text>
             </View>
-            <Text style={styles.utilityText}>Step-by-step utility</Text>
-          </View>
 
-          <View style={styles.stepsContainer}>
-            {RECIPE_DATA.steps.map((step) => (
-              <View
-                key={step.id}
-                style={[
-                  styles.stepCard,
-                  step.isCrucial && styles.stepCardCrucial,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.stepNumberDot,
-                    step.isCrucial && styles.stepNumberDotCrucial,
-                  ]}
-                >
-                  <Text
+            <View style={styles.stepsContainer}>
+              {[...recipe.instructions]
+                .sort((a, b) => a.step_number - b.step_number)
+                .map((step: any) => (
+                  <View
+                    key={step.id}
                     style={[
-                      styles.stepNumberText,
-                      step.isCrucial && styles.stepNumberTextCrucial,
+                      styles.stepCard,
+                      step.isCrucial && styles.stepCardCrucial,
                     ]}
                   >
-                    {step.id}
-                  </Text>
-                </View>
-                <View style={styles.stepTextContainer}>
-                  <Text
-                    style={[
-                      styles.stepMainText,
-                      step.isCrucial && styles.stepMainTextCrucial,
-                    ]}
-                  >
-                    {step.text}
-                  </Text>
-                  {step.note ? (
-                    <Text
+                    <View
                       style={[
-                        styles.stepNoteText,
-                        step.isCrucial && styles.stepNoteTextCrucial,
+                        styles.stepNumberDot,
+                        step.isCrucial && styles.stepNumberDotCrucial,
                       ]}
                     >
-                      {step.note}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-            ))}
+                      <Text
+                        style={[
+                          styles.stepNumberText,
+                          step.isCrucial && styles.stepNumberTextCrucial,
+                        ]}
+                      >
+                        {step.step_number}
+                      </Text>
+                    </View>
+                    <View style={styles.stepTextContainer}>
+                      <Text
+                        style={[
+                          styles.stepMainText,
+                          step.isCrucial && styles.stepMainTextCrucial,
+                        ]}
+                      >
+                        {step.description}
+                      </Text>
+                      {step.note ? (
+                        <Text
+                          style={[
+                            styles.stepNoteText,
+                            step.isCrucial && styles.stepNoteTextCrucial,
+                          ]}
+                        >
+                          {step.note}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* CHEF'S NOTE */}
-        <View style={styles.chefNoteCard}>
-          <MaterialIcons
-            name="sticky-note-2"
-            size={20}
-            color={Colors.primary}
-            style={{ marginTop: 2 }}
-          />
-          <View style={styles.chefNoteContent}>
-            <Text style={styles.chefNoteTitle}>Kitchen Notebook Tip</Text>
-            <Text style={styles.chefNoteText}>
-              Leftover chicken adobo tastes even richer on the second day once
-              the vinegar and garlic infuse deeper into the meat.
-            </Text>
+        {recipe.notes ? (
+          <View style={styles.chefNoteCard}>
+            <MaterialIcons
+              name="sticky-note-2"
+              size={20}
+              color={Colors.primary}
+              style={{ marginTop: 2 }}
+            />
+            <View style={styles.chefNoteContent}>
+              <Text style={styles.chefNoteTitle}>Kitchen Notebook Tip</Text>
+              <Text style={styles.chefNoteText}>{recipe.notes}</Text>
+            </View>
           </View>
-        </View>
+        ) : null}
 
         {/* FOOTER */}
         <View style={styles.footer}>

@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -18,6 +19,7 @@ import {
   Borders,
 } from "@/constants/theme";
 import { useRouter } from "expo-router";
+import { useRecipes } from "@/hooks/use-recipe";
 
 const mockRecipes = [
   {
@@ -55,41 +57,6 @@ const mockRecipes = [
     servings: "1 serving",
     source: "Extracted from Web",
   },
-  // {
-  //   id: "6",
-  //   title: "Classic Sourdough Toast & Eggs",
-  //   time: "10 min",
-  //   servings: "1 serving",
-  //   source: "Extracted from Web",
-  // },
-  // {
-  //   id: "7",
-  //   title: "Classic Sourdough Toast & Eggs",
-  //   time: "10 min",
-  //   servings: "1 serving",
-  //   source: "Extracted from Web",
-  // },
-  // {
-  //   id: "8",
-  //   title: "Classic Sourdough Toast & Eggs",
-  //   time: "10 min",
-  //   servings: "1 serving",
-  //   source: "Extracted from Web",
-  // },
-  // {
-  //   id: "9",
-  //   title: "Classic Sourdough Toast & Eggs",
-  //   time: "10 min",
-  //   servings: "1 serving",
-  //   source: "Extracted from Web",
-  // },
-  // {
-  //   id: "10",
-  //   title: "Classic Sourdough Toast & Eggs",
-  //   time: "10 min",
-  //   servings: "1 serving",
-  //   source: "Extracted from Web",
-  // },
 ];
 
 export default function Clip2Cook() {
@@ -98,7 +65,9 @@ export default function Clip2Cook() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showEmptyState, setShowEmptyState] = useState(false);
 
-  const filteredRecipes = mockRecipes.filter((recipe) =>
+  const { data: recipes = [], isLoading, isError } = useRecipes();
+
+  const filteredRecipes = recipes.filter((recipe: any) =>
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
@@ -192,7 +161,13 @@ export default function Clip2Cook() {
         </View>
 
         {/* Dynamic Content Area */}
-        {showEmptyState ? (
+        {isLoading ? (
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : showEmptyState ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
               <MaterialIcons
@@ -231,7 +206,7 @@ export default function Clip2Cook() {
             style={styles.listSection}
             contentContainerStyle={styles.contentContainer}
           >
-            {filteredRecipes.map((recipe) => (
+            {filteredRecipes.map((recipe: any, index: number) => (
               <TouchableOpacity
                 key={recipe.id}
                 style={styles.recipeCard}
@@ -240,7 +215,7 @@ export default function Clip2Cook() {
               >
                 <View style={styles.cardContent}>
                   <View style={styles.cardHeader}>
-                    {recipe.id === "1" && <View style={styles.activeDot} />}
+                    {index === 0 && <View style={styles.activeDot} />}
                     <Text style={styles.recipeTitle} numberOfLines={1}>
                       {recipe.title}
                     </Text>
@@ -251,14 +226,18 @@ export default function Clip2Cook() {
                       size={14}
                       color={Colors.text_muted}
                     />
-                    <Text style={styles.metaText}>{recipe.time}</Text>
+                    <Text style={styles.metaText}>
+                      {recipe.prep_time || "-- min"}
+                    </Text>
                     <Text style={styles.metaDot}>·</Text>
                     <MaterialIcons
                       name="group"
                       size={14}
                       color={Colors.text_muted}
                     />
-                    <Text style={styles.metaText}>{recipe.servings}</Text>
+                    <Text style={styles.metaText}>
+                      {recipe.yield_amount || "-- servings"}
+                    </Text>
                     <Text style={styles.metaDot}>·</Text>
                   </View>
                   <Text
@@ -267,7 +246,7 @@ export default function Clip2Cook() {
                       { color: Colors.on_surface_variant, fontWeight: "500" },
                     ]}
                   >
-                    {recipe.source}
+                    {`Extracted from ${recipe.platform || recipe.recipe_by || "Manual Entry"}`}
                   </Text>
                 </View>
                 <MaterialIcons
@@ -279,18 +258,21 @@ export default function Clip2Cook() {
             ))}
           </ScrollView>
         )}
-        <View style={styles.bottomRibbon}>
-          <Text style={styles.ribbonCount}>
-            {mockRecipes.length} saved recipes
-          </Text>
-          <TouchableOpacity
-            style={styles.ribbonAddAction}
-            onPress={() => router.push("/(recipes)/form")}
-          >
-            <MaterialIcons name="add" size={16} color={Colors.primary} />
-            <Text style={styles.ribbonAddText}>Add Recipe</Text>
-          </TouchableOpacity>
-        </View>
+
+        {!showEmptyState && !isLoading && (
+          <View style={styles.bottomRibbon}>
+            <Text style={styles.ribbonCount}>
+              {mockRecipes.length} saved recipes
+            </Text>
+            <TouchableOpacity
+              style={styles.ribbonAddAction}
+              onPress={() => router.push("/(recipes)/form")}
+            >
+              <MaterialIcons name="add" size={16} color={Colors.primary} />
+              <Text style={styles.ribbonAddText}>Add Recipe</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
