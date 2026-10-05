@@ -1,5 +1,3 @@
-- Wrote backend of CRUD recipe
-- Connected frontend to backend
-     - api
-     - hook
-     - zod
+- Improved the recipe details screen
+     - Added a timer property each step of the instruction
+     - Updated the form and recipe details page for the timer UI and flow

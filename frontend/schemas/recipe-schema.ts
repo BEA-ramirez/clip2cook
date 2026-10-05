@@ -9,6 +9,7 @@ export const IngredientSchema = z.object({
 export const InstructionSchema = z.object({
   step_number: z.number().int().min(1),
   description: z.string().min(1, "Instruction cannot be empty"),
+  timer_seconds: z.string().optional().or(z.literal("")),
 });
 
 export const EquipmentSchema = z.object({

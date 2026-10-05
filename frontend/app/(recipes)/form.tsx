@@ -97,9 +97,18 @@ export default function RecipeFormScreen() {
   };
 
   const onSubmit = (validData: RecipeFormValues) => {
-    console.log("Passed Zod Validation! Ready for API:", validData);
+    const payloadForApi = {
+      ...validData,
+      instructions: validData.instructions.map((step) => {
+        const totalSeconds = step.timer_seconds
+          ? String(Number(step.timer_seconds) * 60)
+          : "";
+        return { ...step, timer_seconds: totalSeconds };
+      }),
+    };
+    console.log("Passed Zod Validation! Ready for API:", payloadForApi);
 
-    addRecipe(validData, {
+    addRecipe(payloadForApi, {
       onSuccess: () => {
         router.back();
       },
@@ -501,27 +510,39 @@ export default function RecipeFormScreen() {
                         Required
                       </Text>
                     )}
-                    <View style={styles.stepActions}>
-                      <TouchableOpacity style={styles.stepActionBtn}>
-                        <MaterialIcons
-                          name="timer"
-                          size={14}
-                          color={Colors.text_muted}
-                        />
-                        <Text style={styles.stepActionBtnText}>
-                          Attach timer
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.stepDeleteBtn}
-                        onPress={() => removeInstruction(index)}
-                      >
-                        <MaterialIcons
-                          name="delete"
-                          size={16}
-                          color={Colors.text_muted}
-                        />
-                      </TouchableOpacity>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <MaterialIcons
+                        name="timer"
+                        size={16}
+                        color={Colors.text_muted}
+                      />
+                      <Controller
+                        control={control}
+                        name={`instructions.${index}.timer_seconds`}
+                        render={({ field: { onChange, value } }) => (
+                          <TextInput
+                            style={{
+                              ...Typography.labelSm,
+                              color: Colors.primary,
+                              minWidth: 60,
+                              paddingVertical: 2,
+                              borderBottomWidth: 1,
+                              borderBottomColor: Colors.border_default,
+                            }}
+                            placeholder="Mins (e.g. 15)"
+                            placeholderTextColor={Colors.text_muted}
+                            keyboardType="numeric"
+                            value={value}
+                            onChangeText={onChange}
+                          />
+                        )}
+                      />
                     </View>
                   </View>
                 </View>

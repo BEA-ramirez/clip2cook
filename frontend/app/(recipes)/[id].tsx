@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,7 +29,11 @@ export default function RecipeDetailScreen() {
   const [checkedEquipment, setCheckedEquipment] = useState<Set<number>>(
     new Set(),
   );
-  const [showTimer, setShowTimer] = useState(false);
+  const [activeTimer, setActiveTimer] = useState<{
+    stepNumber: number;
+    remaining: number;
+    total: number;
+  } | null>(null);
   const [copiedStatus, setCopiedStatus] = useState(false);
 
   const toggleIngredient = (ingId: string) => {
@@ -50,6 +55,41 @@ export default function RecipeDetailScreen() {
     await Clipboard.setStringAsync(text);
     setCopiedStatus(true);
     setTimeout(() => setCopiedStatus(false), 2000);
+  };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    // If there's an active timer and >0, tick down every 1 sec
+    if (activeTimer && activeTimer.remaining > 0) {
+      interval = setInterval(() => {
+        setActiveTimer((prev) =>
+          prev ? { ...prev, remaining: prev.remaining - 1 } : null,
+        );
+      }, 1000);
+    } else if (activeTimer && activeTimer.remaining === 0) {
+      // timer finished (add vib or sound)
+      console.log("Timer finished!");
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [activeTimer, activeTimer?.remaining]);
+
+  const formatCountdown = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (totalSeconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  const startTimer = (stepNumber: number, timerSeconds: string | number) => {
+    const seconds = Number(timerSeconds);
+    setActiveTimer({ stepNumber, remaining: seconds, total: seconds });
   };
 
   if (isLoading) {
@@ -153,13 +193,13 @@ export default function RecipeDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.primaryActionBtn}
               onPress={() => setShowTimer(true)}
             >
               <MaterialIcons name="timer" size={16} color={Colors.on_primary} />
               <Text style={styles.primaryActionBtnText}>30m Quick Timer</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
 
@@ -216,25 +256,6 @@ export default function RecipeDetailScreen() {
           )}
         </View>
 
-        {/* ACTIVE TIMER (Conditional) */}
-        {showTimer && (
-          <View style={styles.timerStrip}>
-            <View style={styles.timerLeft}>
-              <MaterialIcons name="alarm" size={20} color={Colors.primary} />
-              <View>
-                <Text style={styles.timerLabel}>Step 4 Simmer Countdown</Text>
-                <Text style={styles.timerDigits}>25:00 remaining</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={() => setShowTimer(false)}
-              style={styles.timerClose}
-            >
-              <MaterialIcons name="close" size={18} color={Colors.text_muted} />
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* INGREDIENTS SECTION */}
         {recipe.ingredients && recipe.ingredients.length > 0 && (
           <View style={styles.surfaceCard}>
@@ -244,7 +265,8 @@ export default function RecipeDetailScreen() {
                 <Text style={styles.sectionTitle}>INGREDIENTS</Text>
               </View>
               <Text style={styles.counterText}>
-                {checkedIngredients.size} / {recipe?.ingredients.length} ready
+                {checkedIngredients.size - 1} / {recipe?.ingredients.length}{" "}
+                ready
               </Text>
             </View>
             <Text style={styles.sectionDesc}>
@@ -319,9 +341,9 @@ export default function RecipeDetailScreen() {
                 const isChecked = checkedEquipment.has(item.id);
                 return (
                   <TouchableOpacity
-                    key={idx}
+                    key={item.id}
                     style={styles.equipBox}
-                    onPress={() => toggleEquipment(idx)}
+                    onPress={() => toggleEquipment(item.id)}
                     activeOpacity={0.7}
                   >
                     <MaterialIcons
@@ -400,6 +422,73 @@ export default function RecipeDetailScreen() {
                           {step.note}
                         </Text>
                       ) : null}
+                      {step.timer_seconds ? (
+                        <View style={styles.timerBlock}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <MaterialIcons
+                              name="timer"
+                              size={16}
+                              color={Colors.text_muted}
+                            />
+                            <Text
+                              style={{
+                                ...Typography.labelSm,
+                                fontFamily:
+                                  Platform.OS === "ios" ? "Menlo" : "monospace",
+                                fontWeight: "500",
+                                color: Colors.on_surface,
+                              }}
+                            >
+                              {step.timer_seconds
+                                ? `${Math.floor(Number(step.timer_seconds) / 60)} min`
+                                : null}{" "}
+                              Timer
+                            </Text>
+                          </View>
+                          <View
+                            style={{
+                              width: 4,
+                              height: 4,
+                              borderRadius: 2,
+                              backgroundColor: Colors.border_default,
+                            }}
+                          />
+                          <TouchableOpacity
+                            style={{
+                              height: 26,
+                              paddingHorizontal: 10,
+                              borderRadius: Radius.sm,
+                              backgroundColor: Colors.primary,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                            onPress={() => {
+                              startTimer(step.step_number, step.timer_seconds);
+                            }}
+                          >
+                            <MaterialIcons
+                              name="play-arrow"
+                              size={14}
+                              color={Colors.on_primary}
+                            />
+                            <Text
+                              style={{
+                                ...Typography.labelSm,
+                                color: Colors.on_primary,
+                              }}
+                            >
+                              Start
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
                     </View>
                   </View>
                 ))}
@@ -440,6 +529,100 @@ export default function RecipeDetailScreen() {
           </Text>
         </View>
       </ScrollView>
+      {activeTimer && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: insets.bottom + 20, // Floats safely above the bottom of the screen
+            left: 16,
+            right: 16,
+            backgroundColor: Colors.surface_container_highest,
+            borderRadius: Radius.xl,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 10,
+            elevation: 5,
+            borderWidth: 1,
+            borderColor: Colors.border_default,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: Colors.primary,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <MaterialIcons
+                name={activeTimer.remaining === 0 ? "done" : "timer"}
+                size={20}
+                color={Colors.on_primary}
+              />
+            </View>
+            <View>
+              <Text style={{ ...Typography.labelSm, color: Colors.text_muted }}>
+                Step {activeTimer.stepNumber} Timer
+              </Text>
+              <Text
+                style={{
+                  ...Typography.headlineMd,
+                  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+                  color:
+                    activeTimer.remaining === 0
+                      ? Colors.primary
+                      : Colors.on_surface,
+                  marginTop: -2,
+                }}
+              >
+                {formatCountdown(activeTimer.remaining)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Controls */}
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity
+              onPress={() =>
+                setActiveTimer({ ...activeTimer, remaining: activeTimer.total })
+              }
+              style={{
+                padding: 8,
+                backgroundColor: Colors.surface,
+                borderRadius: Radius.full,
+              }}
+            >
+              <MaterialIcons
+                name="refresh"
+                size={20}
+                color={Colors.on_surface_variant}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveTimer(null)} // Dismisses the timer completely
+              style={{
+                padding: 8,
+                backgroundColor: Colors.surface,
+                borderRadius: Radius.full,
+              }}
+            >
+              <MaterialIcons
+                name="close"
+                size={20}
+                color={Colors.on_surface_variant}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -844,5 +1027,22 @@ const styles = StyleSheet.create({
     ...Typography.labelSm,
     color: Colors.border_default, // Or another faint color
     textTransform: "none",
+  },
+  timerBlock: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.surface_container_lowest,
+    borderWidth: 1,
+    borderColor: Colors.border_default,
+    borderRadius: Radius.lg,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });

@@ -16,6 +16,7 @@ class IngredientBase(BaseModel):
 class InstructionBase(BaseModel):
      step_number: int
      description: str
+     timer_seconds: Optional[int] = None
 
 class EquipmentBase(BaseModel):
      name: str
