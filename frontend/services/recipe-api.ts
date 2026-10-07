@@ -15,3 +15,14 @@ export const getRecipeById = async (id: string) => {
   const response = await apiClient.get(`/recipes/${id}/`);
   return response.data;
 };
+
+export const updateRecipe = async ({
+  id,
+  data,
+}: {
+  id: string;
+  data: RecipeFormValues;
+}) => {
+  const response = await apiClient.put(`/recipes/${id}`, data);
+  return response.data;
+};

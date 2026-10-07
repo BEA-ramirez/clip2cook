@@ -530,37 +530,9 @@ export default function RecipeDetailScreen() {
         </View>
       </ScrollView>
       {activeTimer && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: insets.bottom + 20, // Floats safely above the bottom of the screen
-            left: 16,
-            right: 16,
-            backgroundColor: Colors.surface_container_highest,
-            borderRadius: Radius.xl,
-            padding: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            shadowColor: "#000",
-            shadowOpacity: 0.15,
-            shadowRadius: 10,
-            elevation: 5,
-            borderWidth: 1,
-            borderColor: Colors.border_default,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: Colors.primary,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+        <View style={[styles.floatingTimer, { bottom: insets.bottom + 20 }]}>
+          <View style={styles.timerContainer}>
+            <View style={styles.timerContent}>
               <MaterialIcons
                 name={activeTimer.remaining === 0 ? "done" : "timer"}
                 size={20}
@@ -1044,5 +1016,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  floatingTimer: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    backgroundColor: Colors.surface_container_highest,
+    borderRadius: Radius.xl,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: Colors.border_default,
+  },
+  timerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  timerContent: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

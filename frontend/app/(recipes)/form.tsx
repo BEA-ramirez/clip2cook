@@ -11,19 +11,120 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
 import { RecipeFormSchema, RecipeFormValues } from "@/schemas/recipe-schema";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCreateRecipe } from "@/hooks/use-recipe";
+import {
+  useCreateRecipe,
+  useUpdateRecipe,
+  useRecipeById,
+} from "@/hooks/use-recipe";
 
+// THE WRAPPER COMPONENT
+// handles fetching and waiting and blocks the form from rendering
+// until the data is 100% ready
 export default function RecipeFormScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const isEditMode = !!id;
+
+  const { data: existingRecipe, isLoading: isFetching } = useRecipeById(
+    id || "",
+  );
+
+  // Show spinner while fetching. THE FORM DOES NOT MOUNT YET.
+  if (isEditMode && isFetching) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  // Once data arrives (or if creating new), format data
+  const initialData =
+    isEditMode && existingRecipe
+      ? {
+          title: existingRecipe.title || "",
+          description: existingRecipe.description || "",
+          notes: existingRecipe.notes || "",
+          recipe_by: existingRecipe.recipe_by || "",
+          platform: existingRecipe.platform || "",
+          source_url: existingRecipe.source_url || "",
+          prep_time: existingRecipe.prep_time || "",
+          yield_amount: existingRecipe.yield_amount || "",
+          tags: existingRecipe.tags?.map((t: any) => t.tag_name || t) || [],
+          ingredients:
+            existingRecipe.ingredients?.map((ing: any) => ({
+              name: ing.name || "",
+              qty: ing.qty || "",
+              unit: ing.unit || "",
+            })) || [],
+          equipment:
+            existingRecipe.equipment?.map((eq: any) => ({
+              name: eq.name || "",
+            })) || [],
+          instructions:
+            existingRecipe.instructions?.map((step: any) => ({
+              step_number: step.step_number,
+              description: step.description || "",
+              timer_seconds: step.timer_seconds
+                ? String(step.timer_seconds / 60)
+                : "",
+            })) || [],
+        }
+      : {
+          // for create mode
+          title: "",
+          description: "",
+          notes: "",
+          recipe_by: "",
+          platform: "",
+          source_url: "",
+          prep_time: "",
+          yield_amount: "",
+          ingredients: [],
+          instructions: [],
+          equipment: [],
+          tags: [],
+        };
+
+  // Pass the flawless data down to the actual form
+  return (
+    <RecipeFormContent
+      initialData={initialData}
+      isEditMode={isEditMode}
+      recipeId={id}
+    />
+  );
+}
+
+// THE FORM COMPONENT
+// only mounts when initialData is fully prepared. useFieldArray
+// will never glitch again because the data is there at the start
+function RecipeFormContent({
+  initialData,
+  isEditMode,
+  recipeId,
+}: {
+  initialData: any;
+  isEditMode: boolean;
+  recipeId?: string;
+}) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { mutate: addRecipe, isPending: isSaving } = useCreateRecipe();
+
+  const { mutate: addRecipe, isPending: isCreating } = useCreateRecipe();
+  const { mutate: editRecipe, isPending: isUpdating } = useUpdateRecipe();
+  const isSaving = isCreating || isUpdating;
 
   const [newTool, setNewTool] = useState("");
   const [newTag, setNewTag] = useState("");
@@ -36,20 +137,7 @@ export default function RecipeFormScreen() {
     formState: { errors },
   } = useForm<RecipeFormValues>({
     resolver: zodResolver(RecipeFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      notes: "",
-      recipe_by: "",
-      platform: "",
-      source_url: "",
-      prep_time: "",
-      yield_amount: "",
-      ingredients: [],
-      instructions: [],
-      equipment: [],
-      tags: [],
-    },
+    defaultValues: initialData,
   });
 
   const {
@@ -57,13 +145,11 @@ export default function RecipeFormScreen() {
     append: appendIngredient,
     remove: removeIngredient,
   } = useFieldArray({ control, name: "ingredients" });
-
   const {
     fields: instructionFields,
     append: appendInstruction,
     remove: removeInstruction,
   } = useFieldArray({ control, name: "instructions" });
-
   const {
     fields: equipmentFields,
     append: appendEquipment,
@@ -88,10 +174,7 @@ export default function RecipeFormScreen() {
 
   const handleAddEquipment = (newEquipment: string) => {
     if (newEquipment.trim()) {
-      setValue("equipment", [
-        ...watch("equipment"),
-        { name: newEquipment.trim() },
-      ]);
+      appendEquipment({ name: newEquipment.trim() });
       setNewTool("");
     }
   };
@@ -101,18 +184,27 @@ export default function RecipeFormScreen() {
       ...validData,
       instructions: validData.instructions.map((step) => {
         const totalSeconds = step.timer_seconds
-          ? String(Number(step.timer_seconds) * 60)
-          : "";
+          ? Number(step.timer_seconds) * 60
+          : null;
         return { ...step, timer_seconds: totalSeconds };
       }),
     };
+
     console.log("Passed Zod Validation! Ready for API:", payloadForApi);
 
-    addRecipe(payloadForApi, {
-      onSuccess: () => {
-        router.back();
-      },
-    });
+    if (isEditMode && recipeId) {
+      editRecipe(
+        { id: recipeId, data: payloadForApi as any },
+        {
+          onSuccess: () => router.back(),
+          onError: (error: any) => {
+            console.log(JSON.stringify(error.response?.data, null, 2));
+          },
+        },
+      );
+    } else {
+      addRecipe(payloadForApi as any, { onSuccess: () => router.back() });
+    }
   };
 
   return (
@@ -137,7 +229,7 @@ export default function RecipeFormScreen() {
             style={styles.logo}
           />
           <Text style={styles.headerTitle} numberOfLines={1}>
-            New Recipe
+            {isEditMode ? "Edit Recipe" : "New Recipe"}
           </Text>
         </View>
         <View style={styles.avatar}>
@@ -181,7 +273,7 @@ export default function RecipeFormScreen() {
             <Controller
               control={control}
               name="title"
-              render={({ field: { onChange, onBlur, value } }) => (
+              render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={styles.titleInput}
                   placeholder="e.g. Butter Roast Chicken"
@@ -207,7 +299,7 @@ export default function RecipeFormScreen() {
                 <Controller
                   control={control}
                   name="prep_time"
-                  render={({ field: { onChange, onBlur, value } }) => (
+                  render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={styles.metaInput}
                       placeholder="30 min"
@@ -226,7 +318,7 @@ export default function RecipeFormScreen() {
                 <Controller
                   control={control}
                   name="yield_amount"
-                  render={({ field: { onChange, onBlur, value } }) => (
+                  render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={styles.metaInput}
                       placeholder="4 servings"
@@ -245,7 +337,7 @@ export default function RecipeFormScreen() {
                 <Controller
                   control={control}
                   name="recipe_by"
-                  render={({ field: { onChange, onBlur, value } }) => (
+                  render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={styles.metaInput}
                       placeholder="Recipe by"
@@ -264,7 +356,7 @@ export default function RecipeFormScreen() {
                 <Controller
                   control={control}
                   name="platform"
-                  render={({ field: { onChange, onBlur, value } }) => (
+                  render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={styles.metaInput}
                       placeholder="Source"
@@ -283,7 +375,7 @@ export default function RecipeFormScreen() {
                 <Controller
                   control={control}
                   name="source_url"
-                  render={({ field: { onChange, onBlur, value } }) => (
+                  render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={styles.metaInput}
                       placeholder="Url"
@@ -323,14 +415,6 @@ export default function RecipeFormScreen() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.convertBtn}>
-                <MaterialIcons
-                  name="square-foot"
-                  size={14}
-                  color={Colors.on_surface}
-                />
-                <Text style={styles.convertBtnText}>Convert units</Text>
-              </TouchableOpacity>
             </View>
             <Text style={styles.sectionSubtitle}>
               Specify measurable amounts, prep states, or knife cuts.
@@ -346,16 +430,12 @@ export default function RecipeFormScreen() {
                   />
                   <View style={{ flex: 1, gap: 4 }}>
                     <View
-                      style={{
-                        flexDirection: "row",
-                        gap: 6,
-                        marginBottom: 4,
-                      }}
+                      style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}
                     >
                       <Controller
                         control={control}
                         name={`ingredients.${index}.qty`}
-                        render={({ field: { onChange, onBlur, value } }) => (
+                        render={({ field: { onChange, value } }) => (
                           <TextInput
                             style={styles.qtyInput}
                             placeholder="Qty"
@@ -367,7 +447,7 @@ export default function RecipeFormScreen() {
                       <Controller
                         control={control}
                         name={`ingredients.${index}.unit`}
-                        render={({ field: { onChange, onBlur, value } }) => (
+                        render={({ field: { onChange, value } }) => (
                           <TextInput
                             style={styles.qtyInput}
                             placeholder="Unit"
@@ -380,7 +460,7 @@ export default function RecipeFormScreen() {
                     <Controller
                       control={control}
                       name={`ingredients.${index}.name`}
-                      render={({ field: { onChange, onBlur, value } }) => (
+                      render={({ field: { onChange, value } }) => (
                         <TextInput
                           style={styles.descInput}
                           placeholder="Ingredient name"
@@ -403,7 +483,6 @@ export default function RecipeFormScreen() {
                 </View>
               ))}
             </View>
-
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => appendIngredient({ qty: "", unit: "", name: "" })}
@@ -495,7 +574,7 @@ export default function RecipeFormScreen() {
                     <Controller
                       control={control}
                       name={`instructions.${index}.description`}
-                      render={({ field: { onChange, onBlur, value } }) => (
+                      render={({ field: { onChange, value } }) => (
                         <TextInput
                           style={styles.stepInput}
                           placeholder="Describe this step..."
@@ -515,6 +594,7 @@ export default function RecipeFormScreen() {
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 6,
+                        marginTop: 6,
                       }}
                     >
                       <MaterialIcons
@@ -545,6 +625,16 @@ export default function RecipeFormScreen() {
                       />
                     </View>
                   </View>
+                  <TouchableOpacity
+                    style={styles.stepDeleteBtn}
+                    onPress={() => removeInstruction(index)}
+                  >
+                    <MaterialIcons
+                      name="close"
+                      size={16}
+                      color={Colors.text_muted}
+                    />
+                  </TouchableOpacity>
                 </View>
               ))}
             </View>
@@ -621,7 +711,7 @@ export default function RecipeFormScreen() {
             <Controller
               control={control}
               name="notes"
-              render={({ field: { onChange, onBlur, value } }) => (
+              render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={styles.notesInput}
                   placeholder="e.g. Do not stir after pouring vinegar to prevent raw acidity; let simmer naturally."
@@ -649,7 +739,9 @@ export default function RecipeFormScreen() {
                     size={20}
                     color={Colors.on_primary}
                   />
-                  <Text style={styles.saveBtnText}>Save to Notebook</Text>
+                  <Text style={styles.saveBtnText}>
+                    {isEditMode ? "Update Recipe" : "Save to Notebook"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -657,15 +749,6 @@ export default function RecipeFormScreen() {
             <View style={styles.secondaryActions}>
               <TouchableOpacity onPress={() => router.back()}>
                 <Text style={styles.discardText}>Discard draft</Text>
-              </TouchableOpacity>
-              <Text style={styles.dot}>·</Text>
-              <TouchableOpacity style={styles.exportBtn}>
-                <MaterialIcons
-                  name="file-download"
-                  size={16}
-                  color={Colors.text_muted}
-                />
-                <Text style={styles.discardText}>Export as Markdown</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -675,14 +758,10 @@ export default function RecipeFormScreen() {
   );
 }
 
+// Keep your identical StyleSheet below...
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9F9FB",
-  },
-  keyboardView: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: "#F9F9FB" },
+  keyboardView: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -694,11 +773,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border_default,
     zIndex: 10,
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: Spacing.xs },
   backButton: {
     width: 44,
     height: 44,
@@ -706,11 +781,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: -Spacing.xs,
   },
-  logo: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.sm,
-  },
+  logo: { width: 28, height: 28, borderRadius: Radius.sm },
   headerTitle: {
     ...Typography.headlineMd,
     color: Colors.on_surface,
@@ -724,9 +795,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  content: {
-    padding: Spacing.margin,
-  },
+  content: { padding: Spacing.margin },
   contextRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -734,11 +803,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     marginBottom: Spacing.sm,
   },
-  contextLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
+  contextLeft: { flexDirection: "row", alignItems: "center", gap: Spacing.xs },
   badgeSolid: {
     flexDirection: "row",
     alignItems: "center",
@@ -756,20 +821,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.on_surface,
     borderRadius: Radius.full,
   },
-  badgeSolidText: {
-    ...Typography.labelSm,
-    color: Colors.on_surface,
-  },
+  badgeSolidText: { ...Typography.labelSm, color: Colors.on_surface },
   draftText: {
     ...Typography.labelSm,
     color: Colors.text_muted,
     textTransform: "none",
   },
-  contextRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
+  contextRight: { flexDirection: "row", alignItems: "center", gap: 4 },
   contextRightText: {
     ...Typography.labelSm,
     color: Colors.text_muted,
@@ -831,16 +889,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginBottom: Spacing.md,
   },
-  watermarkLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  watermarkLogo: {
-    width: 16,
-    height: 16,
-    borderRadius: 2,
-  },
+  watermarkLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  watermarkLogo: { width: 16, height: 16, borderRadius: 2 },
   watermarkText: {
     ...Typography.labelSm,
     color: Colors.on_surface,
@@ -856,11 +906,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  cardHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
+  cardHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   sectionTitle: {
     ...Typography.labelMd,
     fontWeight: "700",
@@ -880,11 +926,7 @@ const styles = StyleSheet.create({
     color: Colors.text_muted,
     textTransform: "none",
   },
-  convertBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
+  convertBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   convertBtnText: {
     ...Typography.labelSm,
     color: Colors.on_surface,
@@ -901,10 +943,7 @@ const styles = StyleSheet.create({
     color: Colors.text_muted,
     textTransform: "none",
   },
-  listContainer: {
-    gap: 6,
-    marginVertical: 4,
-  },
+  listContainer: { gap: 6, marginVertical: 4 },
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -937,9 +976,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 2,
   },
-  deleteBtn: {
-    padding: 6,
-  },
+  deleteBtn: { padding: 6 },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -996,9 +1033,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
     paddingVertical: 6,
   },
-  addToolBtn: {
-    padding: 6,
-  },
+  addToolBtn: { padding: 6 },
   stepRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1009,10 +1044,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 2,
   },
-  stepLeft: {
-    alignItems: "center",
-    gap: 6,
-  },
+  stepLeft: { alignItems: "center", gap: 6 },
   stepNumberDot: {
     width: 20,
     height: 20,
@@ -1026,10 +1058,7 @@ const styles = StyleSheet.create({
     color: Colors.surface_container_lowest,
     fontWeight: "700",
   },
-  stepRight: {
-    flex: 1,
-    gap: 6,
-  },
+  stepRight: { flex: 1, gap: 6 },
   stepInput: {
     ...Typography.bodyMd,
     color: Colors.on_surface,
@@ -1046,19 +1075,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  stepActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
+  stepActionBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   stepActionBtnText: {
     ...Typography.labelSm,
     color: Colors.text_muted,
     textTransform: "none",
   },
-  stepDeleteBtn: {
-    padding: 4,
-  },
+  stepDeleteBtn: { padding: 4 },
   notesInput: {
     ...Typography.bodySm,
     color: Colors.on_surface,
@@ -1070,10 +1093,7 @@ const styles = StyleSheet.create({
     minHeight: 70,
     marginTop: Spacing.sm,
   },
-  footerActions: {
-    paddingTop: Spacing.sm,
-    gap: Spacing.md,
-  },
+  footerActions: { paddingTop: Spacing.sm, gap: Spacing.md },
   saveBtn: {
     flexDirection: "row",
     justifyContent: "center",
@@ -1094,17 +1114,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
-  exportBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
+  exportBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   discardText: {
     ...Typography.bodyMd,
     fontWeight: "500",
     color: Colors.text_muted,
   },
-  dot: {
-    color: Colors.border_default,
-  },
+  dot: { color: Colors.border_default },
 });

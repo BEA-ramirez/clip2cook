@@ -63,7 +63,6 @@ export default function Clip2Cook() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showEmptyState, setShowEmptyState] = useState(false);
 
   const { data: recipes = [], isLoading, isError } = useRecipes();
 
@@ -139,7 +138,7 @@ export default function Clip2Cook() {
               />
               <Text style={styles.filterButtonText}>Recent</Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.filterButton}
               onPress={() => setShowEmptyState(!showEmptyState)}
             >
@@ -156,7 +155,7 @@ export default function Clip2Cook() {
               >
                 {showEmptyState ? "Show List" : "Empty Preview"}
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
 
@@ -167,7 +166,7 @@ export default function Clip2Cook() {
           >
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        ) : showEmptyState ? (
+        ) : recipes.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
               <MaterialIcons
@@ -259,7 +258,7 @@ export default function Clip2Cook() {
           </ScrollView>
         )}
 
-        {!showEmptyState && !isLoading && (
+        {!(recipes.length === 0) && !isLoading && (
           <View style={styles.bottomRibbon}>
             <Text style={styles.ribbonCount}>
               {mockRecipes.length} saved recipes
