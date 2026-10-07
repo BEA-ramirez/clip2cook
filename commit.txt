@@ -1,3 +1,1 @@
-- Improved the recipe details screen
-     - Added a timer property each step of the instruction
-     - Updated the form and recipe details page for the timer UI and flow
+- Handled the edit recipe screen (both frontend and backends)

@@ -21,44 +21,6 @@ import {
 import { useRouter } from "expo-router";
 import { useRecipes } from "@/hooks/use-recipe";
 
-const mockRecipes = [
-  {
-    id: "1",
-    title: "Chicken Adobo",
-    time: "30 min",
-    servings: "4 servings",
-    source: "Extracted from YouTube",
-  },
-  {
-    id: "2",
-    title: "Creamy Garlic Pasta",
-    time: "25 min",
-    servings: "2 servings",
-    source: "Extracted from Recipe Blog",
-  },
-  {
-    id: "3",
-    title: "Fluffy Buttermilk Pancakes",
-    time: "15 min",
-    servings: "3 servings",
-    source: "Extracted from TikTok",
-  },
-  {
-    id: "4",
-    title: "Quick 15-Minute Miso Ramen",
-    time: "15 min",
-    servings: "1 serving",
-    source: "Extracted from Instagram",
-  },
-  {
-    id: "5",
-    title: "Classic Sourdough Toast & Eggs",
-    time: "10 min",
-    servings: "1 serving",
-    source: "Extracted from Web",
-  },
-];
-
 export default function Clip2Cook() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -69,6 +31,57 @@ export default function Clip2Cook() {
   const filteredRecipes = recipes.filter((recipe: any) =>
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  if (isError) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Text style={{ color: "red" }}>Failed to load recipes.</Text>
+      </View>
+    );
+  }
+
+  if (recipes.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <View style={styles.emptyIconContainer}>
+          <MaterialIcons
+            name="content-paste"
+            size={24}
+            color={Colors.primary}
+          />
+        </View>
+        <Text style={styles.emptyTitle}>GETTING STARTED</Text>
+        <Text style={styles.emptyDesc}>
+          No recipes yet? Paste a recipe link to save your first recipe.
+        </Text>
+
+        <View style={styles.pasteInputContainer}>
+          <TextInput
+            style={styles.pasteInput}
+            placeholder="https://youtube.com/watch?v=..."
+            placeholderTextColor={Colors.text_muted}
+            editable={false}
+          />
+          <TouchableOpacity style={styles.pasteButton}>
+            <Text style={styles.pasteButtonText}>Paste</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.addRecipeButton}
+          onPress={() => router.push("/(recipes)/form")}
+        >
+          <MaterialIcons name="add" size={20} color={Colors.on_primary} />
+          <Text style={styles.addRecipeButtonText}>Add Recipe</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.safeArea}>
@@ -126,7 +139,7 @@ export default function Clip2Cook() {
           <View style={styles.filterLeft}>
             <Text style={styles.libraryText}>LIBRARY</Text>
             <View style={styles.countBadge}>
-              <Text style={styles.countText}>{mockRecipes.length}</Text>
+              <Text style={styles.countText}>{recipes.length}</Text>
             </View>
           </View>
           <View style={styles.filterRight}>
@@ -165,40 +178,6 @@ export default function Clip2Cook() {
             style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
           >
             <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : recipes.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconContainer}>
-              <MaterialIcons
-                name="content-paste"
-                size={24}
-                color={Colors.primary}
-              />
-            </View>
-            <Text style={styles.emptyTitle}>GETTING STARTED</Text>
-            <Text style={styles.emptyDesc}>
-              No recipes yet? Paste a recipe link to save your first recipe.
-            </Text>
-
-            <View style={styles.pasteInputContainer}>
-              <TextInput
-                style={styles.pasteInput}
-                placeholder="https://youtube.com/watch?v=..."
-                placeholderTextColor={Colors.text_muted}
-                editable={false}
-              />
-              <TouchableOpacity style={styles.pasteButton}>
-                <Text style={styles.pasteButtonText}>Paste</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={styles.addRecipeButton}
-              onPress={() => router.push("/(recipes)/form")}
-            >
-              <MaterialIcons name="add" size={20} color={Colors.on_primary} />
-              <Text style={styles.addRecipeButtonText}>Add Recipe</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <ScrollView
@@ -261,7 +240,7 @@ export default function Clip2Cook() {
         {!(recipes.length === 0) && !isLoading && (
           <View style={styles.bottomRibbon}>
             <Text style={styles.ribbonCount}>
-              {mockRecipes.length} saved recipes
+              {recipes.length} saved recipes
             </Text>
             <TouchableOpacity
               style={styles.ribbonAddAction}
