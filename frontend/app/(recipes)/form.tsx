@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -207,7 +208,7 @@ function RecipeFormContent({
     }
   };
 
-  console.log("🚨 CURRENT ZOD ERRORS:", JSON.stringify(errors, null, 2));
+  //console.log("CURRENT ZOD ERRORS:", JSON.stringify(errors, null, 2));
 
   return (
     <View style={styles.container}>
@@ -239,528 +240,503 @@ function RecipeFormContent({
         </View>
       </View>
 
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + Spacing.xl },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={100}
+        enableAutomaticScroll={true}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + Spacing.xl },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* TOP CONTEXT */}
-          <View style={styles.contextRow}>
-            <View style={styles.contextLeft}>
-              <View style={styles.badgeSolid}>
-                <View style={styles.badgeDot} />
-                <Text style={styles.badgeSolidText}>MANUAL ENTRY</Text>
-              </View>
-              <Text style={styles.draftText}>· Draft Mode</Text>
+        {/* TOP CONTEXT */}
+        <View style={styles.contextRow}>
+          <View style={styles.contextLeft}>
+            <View style={styles.badgeSolid}>
+              <View style={styles.badgeDot} />
+              <Text style={styles.badgeSolidText}>MANUAL ENTRY</Text>
             </View>
-            <View style={styles.contextRight}>
-              <MaterialIcons
-                name="history-edu"
-                size={16}
-                color={Colors.text_muted}
-              />
-              <Text style={styles.contextRightText}>Kitchen Log No. 42</Text>
-            </View>
+            <Text style={styles.draftText}>· Draft Mode</Text>
           </View>
-
-          {/* TITLE & META BLOCK */}
-          <View style={styles.card}>
-            <Text style={styles.inputLabel}>RECIPE TITLE</Text>
-            <Controller
-              control={control}
-              name="title"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={styles.titleInput}
-                  placeholder="e.g. Butter Roast Chicken"
-                  placeholderTextColor={Colors.outline_variant}
-                  value={value}
-                  onChangeText={onChange}
-                />
-              )}
+          <View style={styles.contextRight}>
+            <MaterialIcons
+              name="history-edu"
+              size={16}
+              color={Colors.text_muted}
             />
-            {errors.title && (
+            <Text style={styles.contextRightText}>Kitchen Log No. 42</Text>
+          </View>
+        </View>
+
+        {/* TITLE & META BLOCK */}
+        <View style={styles.card}>
+          <Text style={styles.inputLabel}>RECIPE TITLE</Text>
+          <Controller
+            control={control}
+            name="title"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={styles.titleInput}
+                placeholder="e.g. Butter Roast Chicken"
+                placeholderTextColor={Colors.outline_variant}
+                value={value}
+                onChangeText={onChange}
+              />
+            )}
+          />
+          {errors.title && (
+            <Text style={{ color: "red", fontSize: 12 }}>
+              {errors.title.message}
+            </Text>
+          )}
+
+          <View style={styles.metaInputRow}>
+            <View style={styles.metaInputBox}>
+              <MaterialIcons
+                name="schedule"
+                size={16}
+                color={Colors.on_surface}
+              />
+              <Controller
+                control={control}
+                name="prep_time"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.metaInput}
+                    placeholder="30 min"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+            </View>
+            <View style={styles.metaInputBox}>
+              <MaterialIcons name="group" size={16} color={Colors.on_surface} />
+              <Controller
+                control={control}
+                name="yield_amount"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.metaInput}
+                    placeholder="4 servings"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+            </View>
+            <View style={styles.metaInputBox}>
+              <MaterialIcons
+                name="person"
+                size={16}
+                color={Colors.on_surface}
+              />
+              <Controller
+                control={control}
+                name="recipe_by"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.metaInput}
+                    placeholder="Recipe by"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+            </View>
+            <View style={styles.metaInputBox}>
+              <MaterialIcons
+                name="bookmark"
+                size={16}
+                color={Colors.on_surface}
+              />
+              <Controller
+                control={control}
+                name="platform"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.metaInput}
+                    placeholder="Source"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+            </View>
+            <View style={styles.metaInputBox}>
+              <MaterialIcons name="link" size={16} color={Colors.on_surface} />
+              <Controller
+                control={control}
+                name="source_url"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={styles.metaInput}
+                    placeholder="Url"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
+              />
+            </View>
+            {errors.source_url && (
               <Text style={{ color: "red", fontSize: 12 }}>
-                {errors.title.message}
+                {errors.source_url.message}
               </Text>
             )}
-
-            <View style={styles.metaInputRow}>
-              <View style={styles.metaInputBox}>
-                <MaterialIcons
-                  name="schedule"
-                  size={16}
-                  color={Colors.on_surface}
-                />
-                <Controller
-                  control={control}
-                  name="prep_time"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={styles.metaInput}
-                      placeholder="30 min"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
-              </View>
-              <View style={styles.metaInputBox}>
-                <MaterialIcons
-                  name="group"
-                  size={16}
-                  color={Colors.on_surface}
-                />
-                <Controller
-                  control={control}
-                  name="yield_amount"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={styles.metaInput}
-                      placeholder="4 servings"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
-              </View>
-              <View style={styles.metaInputBox}>
-                <MaterialIcons
-                  name="person"
-                  size={16}
-                  color={Colors.on_surface}
-                />
-                <Controller
-                  control={control}
-                  name="recipe_by"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={styles.metaInput}
-                      placeholder="Recipe by"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
-              </View>
-              <View style={styles.metaInputBox}>
-                <MaterialIcons
-                  name="bookmark"
-                  size={16}
-                  color={Colors.on_surface}
-                />
-                <Controller
-                  control={control}
-                  name="platform"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={styles.metaInput}
-                      placeholder="Source"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
-              </View>
-              <View style={styles.metaInputBox}>
-                <MaterialIcons
-                  name="link"
-                  size={16}
-                  color={Colors.on_surface}
-                />
-                <Controller
-                  control={control}
-                  name="source_url"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={styles.metaInput}
-                      placeholder="Url"
-                      value={value}
-                      onChangeText={onChange}
-                    />
-                  )}
-                />
-              </View>
-              {errors.source_url && (
-                <Text style={{ color: "red", fontSize: 12 }}>
-                  {errors.source_url.message}
-                </Text>
-              )}
-            </View>
           </View>
+        </View>
 
-          {/* WATERMARK RIBBON */}
-          <View style={styles.watermarkRibbon}>
-            <View style={styles.watermarkLeft}>
-              <Image
-                source={{
-                  uri: "https://lh3.googleusercontent.com/aida/AEtjO1XpeR65Nxgcw6kDBHZ_FkWrsGPI997WoCn5DipJ6xG9EdWA4DNcv9xGUFaXIM47nuxsGX92RMwNklR_GGJd1JKCpJoxopP-r_PeM0jzB5tAoh4zACx-bWUkUHvhqPz7WfbJNdDT35siiYXu5sF-W1VP4c0w1-EFAQudnl7Px3vUUCHeWLXNEHSYuAY4rN0AUTv7XxT_7HisxsyQzTcDHPPWzsCBhW_ReArYgjE2PtsawStZ615bwHC4vzA",
-                }}
-                style={styles.watermarkLogo}
-              />
-              <Text style={styles.watermarkText}>
-                Clip2Cook Kitchen Journal
-              </Text>
-            </View>
-            <Text style={styles.watermarkTimeText}>Autosaved just now</Text>
-          </View>
-
-          {/* INGREDIENTS SECTION */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <Text style={styles.sectionTitle}>INGREDIENTS</Text>
-                <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>
-                    {ingredientFields.length} items
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <Text style={styles.sectionSubtitle}>
-              Specify measurable amounts, prep states, or knife cuts.
-            </Text>
-
-            <View style={styles.listContainer}>
-              {ingredientFields.map((ing, index) => (
-                <View key={ing.id} style={styles.itemRow}>
-                  <MaterialIcons
-                    name="drag-indicator"
-                    size={18}
-                    color={Colors.outline_variant}
-                  />
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <View
-                      style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}
-                    >
-                      <Controller
-                        control={control}
-                        name={`ingredients.${index}.qty`}
-                        render={({ field: { onChange, value } }) => (
-                          <TextInput
-                            style={styles.qtyInput}
-                            placeholder="Qty"
-                            value={value}
-                            onChangeText={onChange}
-                          />
-                        )}
-                      />
-                      <Controller
-                        control={control}
-                        name={`ingredients.${index}.unit`}
-                        render={({ field: { onChange, value } }) => (
-                          <TextInput
-                            style={styles.qtyInput}
-                            placeholder="Unit"
-                            value={value}
-                            onChangeText={onChange}
-                          />
-                        )}
-                      />
-                    </View>
-                    <Controller
-                      control={control}
-                      name={`ingredients.${index}.name`}
-                      render={({ field: { onChange, value } }) => (
-                        <TextInput
-                          style={styles.descInput}
-                          placeholder="Ingredient name"
-                          value={value}
-                          onChangeText={onChange}
-                        />
-                      )}
-                    />
-                  </View>
-                  <TouchableOpacity
-                    style={styles.deleteBtn}
-                    onPress={() => removeIngredient(index)}
-                  >
-                    <MaterialIcons
-                      name="close"
-                      size={16}
-                      color={Colors.text_muted}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => appendIngredient({ qty: "", unit: "", name: "" })}
-            >
-              <MaterialIcons name="add" size={18} color={Colors.on_surface} />
-              <Text style={styles.addButtonText}>Add Ingredient</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* EQUIPMENT SECTION */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>EQUIPMENT & COOKWARE</Text>
-              <Text style={styles.sectionSubtitleInline}>Optional</Text>
-            </View>
-
-            <View style={styles.tagsContainer}>
-              {equipmentFields.map((tool, index) => (
-                <View key={tool.id} style={styles.toolChip}>
-                  <MaterialIcons
-                    name="restaurant"
-                    size={14}
-                    color={Colors.on_surface}
-                  />
-                  <Text style={styles.toolChipText}>{tool.name}</Text>
-                  <TouchableOpacity onPress={() => removeEquipment(index)}>
-                    <MaterialIcons
-                      name="close"
-                      size={14}
-                      color={Colors.text_muted}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-
-              <View style={styles.addToolContainer}>
-                <TextInput
-                  style={styles.addToolInput}
-                  placeholder="New tool..."
-                  value={newTool}
-                  onChangeText={setNewTool}
-                  onSubmitEditing={() => handleAddEquipment(newTool)}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={styles.addToolBtn}
-                  onPress={() => handleAddEquipment(newTool)}
-                >
-                  <MaterialIcons
-                    name="add"
-                    size={14}
-                    color={Colors.on_surface}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* INSTRUCTIONS SECTION */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <Text style={styles.sectionTitle}>INSTRUCTIONS</Text>
-                <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>
-                    {instructionFields.length} steps
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.sectionSubtitleInline}>
-                Step-by-step clarity
-              </Text>
-            </View>
-
-            <View style={styles.listContainer}>
-              {instructionFields.map((step, index) => (
-                <View key={step.id} style={styles.stepRow}>
-                  <View style={styles.stepLeft}>
-                    <View style={styles.stepNumberDot}>
-                      <Text style={styles.stepNumberText}>{index + 1}</Text>
-                    </View>
-                    <MaterialIcons
-                      name="drag-indicator"
-                      size={16}
-                      color={Colors.outline_variant}
-                    />
-                  </View>
-                  <View style={styles.stepRight}>
-                    <Controller
-                      control={control}
-                      name={`instructions.${index}.description`}
-                      render={({ field: { onChange, value } }) => (
-                        <TextInput
-                          style={styles.stepInput}
-                          placeholder="Describe this step..."
-                          value={value}
-                          onChangeText={onChange}
-                          multiline
-                        />
-                      )}
-                    />
-                    {errors.instructions?.[index]?.description && (
-                      <Text style={{ color: "red", fontSize: 10 }}>
-                        Required
-                      </Text>
-                    )}
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 6,
-                        marginTop: 6,
-                      }}
-                    >
-                      <MaterialIcons
-                        name="timer"
-                        size={16}
-                        color={Colors.text_muted}
-                      />
-                      <Controller
-                        control={control}
-                        name={`instructions.${index}.timer_seconds`}
-                        render={({ field: { onChange, value } }) => (
-                          <TextInput
-                            style={{
-                              ...Typography.labelSm,
-                              color: Colors.primary,
-                              minWidth: 60,
-                              paddingVertical: 2,
-                              borderBottomWidth: 1,
-                              borderBottomColor: Colors.border_default,
-                            }}
-                            placeholder="Mins (e.g. 15)"
-                            placeholderTextColor={Colors.text_muted}
-                            keyboardType="numeric"
-                            value={value}
-                            onChangeText={onChange}
-                          />
-                        )}
-                      />
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.stepDeleteBtn}
-                    onPress={() => removeInstruction(index)}
-                  >
-                    <MaterialIcons
-                      name="close"
-                      size={16}
-                      color={Colors.text_muted}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() =>
-                appendInstruction({
-                  step_number: instructionFields.length + 1,
-                  description: "",
-                })
-              }
-            >
-              <MaterialIcons name="add" size={18} color={Colors.on_surface} />
-              <Text style={styles.addButtonText}>Add Step</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* TAGS SECTION */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>TAGS</Text>
-              <Text style={styles.sectionSubtitleInline}>Optional</Text>
-            </View>
-
-            <View style={styles.tagsContainer}>
-              {currentTags.map((tag, index) => (
-                <View key={index} style={styles.toolChip}>
-                  <MaterialIcons
-                    name="tag"
-                    size={14}
-                    color={Colors.on_surface}
-                  />
-                  <Text style={styles.toolChipText}>{tag}</Text>
-                  <TouchableOpacity onPress={() => handleRemoveTag(index)}>
-                    <MaterialIcons
-                      name="close"
-                      size={14}
-                      color={Colors.text_muted}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-
-              <View style={styles.addToolContainer}>
-                <TextInput
-                  style={styles.addToolInput}
-                  placeholder="New tag..."
-                  value={newTag}
-                  onChangeText={setNewTag}
-                  onSubmitEditing={() => handleAddTag(newTag)}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={styles.addToolBtn}
-                  onPress={() => handleAddTag(newTag)}
-                >
-                  <MaterialIcons
-                    name="add"
-                    size={14}
-                    color={Colors.on_surface}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* CHEF NOTES */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>KITCHEN NOTES & TIPS</Text>
-              <Text style={styles.sectionSubtitleInline}>Linen margin</Text>
-            </View>
-            <Controller
-              control={control}
-              name="notes"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={styles.notesInput}
-                  placeholder="e.g. Do not stir after pouring vinegar to prevent raw acidity; let simmer naturally."
-                  value={value}
-                  onChangeText={onChange}
-                  multiline
-                />
-              )}
+        {/* WATERMARK RIBBON */}
+        <View style={styles.watermarkRibbon}>
+          <View style={styles.watermarkLeft}>
+            <Image
+              source={{
+                uri: "https://lh3.googleusercontent.com/aida/AEtjO1XpeR65Nxgcw6kDBHZ_FkWrsGPI997WoCn5DipJ6xG9EdWA4DNcv9xGUFaXIM47nuxsGX92RMwNklR_GGJd1JKCpJoxopP-r_PeM0jzB5tAoh4zACx-bWUkUHvhqPz7WfbJNdDT35siiYXu5sF-W1VP4c0w1-EFAQudnl7Px3vUUCHeWLXNEHSYuAY4rN0AUTv7XxT_7HisxsyQzTcDHPPWzsCBhW_ReArYgjE2PtsawStZ615bwHC4vzA",
+              }}
+              style={styles.watermarkLogo}
             />
+            <Text style={styles.watermarkText}>Clip2Cook Kitchen Journal</Text>
+          </View>
+          <Text style={styles.watermarkTimeText}>Autosaved just now</Text>
+        </View>
+
+        {/* INGREDIENTS SECTION */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Text style={styles.sectionTitle}>INGREDIENTS</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>
+                  {ingredientFields.length} items
+                </Text>
+              </View>
+            </View>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Specify measurable amounts, prep states, or knife cuts.
+          </Text>
+
+          <View style={styles.listContainer}>
+            {ingredientFields.map((ing, index) => (
+              <View key={ing.id} style={styles.itemRow}>
+                <MaterialIcons
+                  name="drag-indicator"
+                  size={18}
+                  color={Colors.outline_variant}
+                />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <View
+                    style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}
+                  >
+                    <Controller
+                      control={control}
+                      name={`ingredients.${index}.qty`}
+                      render={({ field: { onChange, value } }) => (
+                        <TextInput
+                          style={styles.qtyInput}
+                          placeholder="Qty"
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      )}
+                    />
+                    <Controller
+                      control={control}
+                      name={`ingredients.${index}.unit`}
+                      render={({ field: { onChange, value } }) => (
+                        <TextInput
+                          style={styles.qtyInput}
+                          placeholder="Unit"
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      )}
+                    />
+                  </View>
+                  <Controller
+                    control={control}
+                    name={`ingredients.${index}.name`}
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={styles.descInput}
+                        placeholder="Ingredient name"
+                        value={value}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => removeIngredient(index)}
+                >
+                  <MaterialIcons
+                    name="close"
+                    size={16}
+                    color={Colors.text_muted}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => appendIngredient({ qty: "", unit: "", name: "" })}
+          >
+            <MaterialIcons name="add" size={18} color={Colors.on_surface} />
+            <Text style={styles.addButtonText}>Add Ingredient</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* EQUIPMENT SECTION */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>EQUIPMENT & COOKWARE</Text>
+            <Text style={styles.sectionSubtitleInline}>Optional</Text>
           </View>
 
-          {/* ACTIONS */}
-          <View style={styles.footerActions}>
-            <TouchableOpacity
-              style={styles.saveBtn}
-              onPress={handleSubmit(onSubmit)}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator color={Colors.on_primary} />
-              ) : (
-                <>
+          <View style={styles.tagsContainer}>
+            {equipmentFields.map((tool, index) => (
+              <View key={tool.id} style={styles.toolChip}>
+                <MaterialIcons
+                  name="restaurant"
+                  size={14}
+                  color={Colors.on_surface}
+                />
+                <Text style={styles.toolChipText}>{tool.name}</Text>
+                <TouchableOpacity onPress={() => removeEquipment(index)}>
                   <MaterialIcons
-                    name="check"
-                    size={20}
-                    color={Colors.on_primary}
+                    name="close"
+                    size={14}
+                    color={Colors.text_muted}
                   />
-                  <Text style={styles.saveBtnText}>
-                    {isEditMode ? "Update Recipe" : "Save to Notebook"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
+            ))}
 
-            <View style={styles.secondaryActions}>
-              <TouchableOpacity onPress={() => router.back()}>
-                <Text style={styles.discardText}>Discard draft</Text>
+            <View style={styles.addToolContainer}>
+              <TextInput
+                style={styles.addToolInput}
+                placeholder="New tool..."
+                value={newTool}
+                onChangeText={setNewTool}
+                onSubmitEditing={() => handleAddEquipment(newTool)}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={styles.addToolBtn}
+                onPress={() => handleAddEquipment(newTool)}
+              >
+                <MaterialIcons name="add" size={14} color={Colors.on_surface} />
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+
+        {/* INSTRUCTIONS SECTION */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Text style={styles.sectionTitle}>INSTRUCTIONS</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>
+                  {instructionFields.length} steps
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.sectionSubtitleInline}>
+              Step-by-step clarity
+            </Text>
+          </View>
+
+          <View style={styles.listContainer}>
+            {instructionFields.map((step, index) => (
+              <View key={step.id} style={styles.stepRow}>
+                <View style={styles.stepLeft}>
+                  <View style={styles.stepNumberDot}>
+                    <Text style={styles.stepNumberText}>{index + 1}</Text>
+                  </View>
+                  <MaterialIcons
+                    name="drag-indicator"
+                    size={16}
+                    color={Colors.outline_variant}
+                  />
+                </View>
+                <View style={styles.stepRight}>
+                  <Controller
+                    control={control}
+                    name={`instructions.${index}.description`}
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={styles.stepInput}
+                        placeholder="Describe this step..."
+                        value={value}
+                        onChangeText={onChange}
+                        multiline
+                      />
+                    )}
+                  />
+                  {errors.instructions?.[index]?.description && (
+                    <Text style={{ color: "red", fontSize: 10 }}>Required</Text>
+                  )}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      marginTop: 6,
+                    }}
+                  >
+                    <MaterialIcons
+                      name="timer"
+                      size={16}
+                      color={Colors.text_muted}
+                    />
+                    <Controller
+                      control={control}
+                      name={`instructions.${index}.timer_seconds`}
+                      render={({ field: { onChange, value } }) => (
+                        <TextInput
+                          style={{
+                            ...Typography.labelSm,
+                            color: Colors.primary,
+                            minWidth: 60,
+                            paddingVertical: 2,
+                            borderBottomWidth: 1,
+                            borderBottomColor: Colors.border_default,
+                          }}
+                          placeholder="Mins (e.g. 15)"
+                          placeholderTextColor={Colors.text_muted}
+                          keyboardType="numeric"
+                          value={value}
+                          onChangeText={onChange}
+                        />
+                      )}
+                    />
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.stepDeleteBtn}
+                  onPress={() => removeInstruction(index)}
+                >
+                  <MaterialIcons
+                    name="close"
+                    size={16}
+                    color={Colors.text_muted}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() =>
+              appendInstruction({
+                step_number: instructionFields.length + 1,
+                description: "",
+              })
+            }
+          >
+            <MaterialIcons name="add" size={18} color={Colors.on_surface} />
+            <Text style={styles.addButtonText}>Add Step</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* TAGS SECTION */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>TAGS</Text>
+            <Text style={styles.sectionSubtitleInline}>Optional</Text>
+          </View>
+
+          <View style={styles.tagsContainer}>
+            {currentTags.map((tag, index) => (
+              <View key={index} style={styles.toolChip}>
+                <MaterialIcons name="tag" size={14} color={Colors.on_surface} />
+                <Text style={styles.toolChipText}>{tag}</Text>
+                <TouchableOpacity onPress={() => handleRemoveTag(index)}>
+                  <MaterialIcons
+                    name="close"
+                    size={14}
+                    color={Colors.text_muted}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            <View style={styles.addToolContainer}>
+              <TextInput
+                style={styles.addToolInput}
+                placeholder="New tag..."
+                value={newTag}
+                onChangeText={setNewTag}
+                onSubmitEditing={() => handleAddTag(newTag)}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={styles.addToolBtn}
+                onPress={() => handleAddTag(newTag)}
+              >
+                <MaterialIcons name="add" size={14} color={Colors.on_surface} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* CHEF NOTES */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>KITCHEN NOTES & TIPS</Text>
+            <Text style={styles.sectionSubtitleInline}>Linen margin</Text>
+          </View>
+          <Controller
+            control={control}
+            name="notes"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={styles.notesInput}
+                placeholder="e.g. Do not stir after pouring vinegar to prevent raw acidity; let simmer naturally."
+                value={value}
+                onChangeText={onChange}
+                multiline
+              />
+            )}
+          />
+        </View>
+
+        {/* ACTIONS */}
+        <View style={styles.footerActions}>
+          <TouchableOpacity
+            style={styles.saveBtn}
+            onPress={handleSubmit(onSubmit)}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color={Colors.on_primary} />
+            ) : (
+              <>
+                <MaterialIcons
+                  name="check"
+                  size={20}
+                  color={Colors.on_primary}
+                />
+                <Text style={styles.saveBtnText}>
+                  {isEditMode ? "Update Recipe" : "Save to Notebook"}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.secondaryActions}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.discardText}>Discard draft</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
