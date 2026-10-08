@@ -4,8 +4,10 @@ import {
   getRecipes,
   getRecipeById,
   updateRecipe,
+  deleteRecipe,
 } from "@/services/recipe-api";
 import Toast from "react-native-toast-message";
+import { useSnackbar } from "@/contexts/SnackbarContext";
 
 export function useRecipes() {
   return useQuery({
@@ -60,6 +62,25 @@ export function useUpdateRecipe() {
       Toast.show({
         type: "error",
         text1: "Error updating recipe",
+        text2: error.message,
+      });
+    },
+  });
+}
+
+export function useDeleteRecipe() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteRecipe,
+    onSuccess: (_, variables) => {
+      Toast.show({ type: "success", text1: "Recipe Deleted!" });
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+    onError: (error: any) => {
+      Toast.show({
+        type: "error",
+        text1: "Error deleting recipe",
         text2: error.message,
       });
     },

@@ -14,13 +14,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
-import { useRecipeById } from "@/hooks/use-recipe";
+import { useRecipeById, useDeleteRecipe } from "@/hooks/use-recipe";
+import { useActionSheet } from "@expo/react-native-action-sheet";
+import { useSnackbar } from "@/contexts/SnackbarContext";
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { showActionSheetWithOptions } = useActionSheet();
+  const { showSnackbar } = useSnackbar();
   const { id } = useLocalSearchParams();
   const { data: recipe, isLoading, isError } = useRecipeById(id as string);
+  const { mutate: deleteRecipe } = useDeleteRecipe();
 
   // Interactive States
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
@@ -55,6 +60,31 @@ export default function RecipeDetailScreen() {
     await Clipboard.setStringAsync(text);
     setCopiedStatus(true);
     setTimeout(() => setCopiedStatus(false), 2000);
+  };
+
+  const handleDeletePress = () => {
+    const options = ["Delete Recipe", "Cancel"];
+    const destructiveButtonIndex = 0; // makes it red on iOS
+    const cancelButtonIndex = 1;
+
+    showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex,
+        destructiveButtonIndex,
+        title: "Delete Recipe",
+        message:
+          "This will permanently remove this recipe from your kitchen journal.",
+      },
+      (selectedIndex) => {
+        if (selectedIndex === destructiveButtonIndex) {
+          console.log("User confirmed deletion! Triggering API...");
+          deleteRecipe(id as string);
+          showSnackbar("Recipe deleted successfully.");
+          router.back();
+        }
+      },
+    );
   };
 
   useEffect(() => {
@@ -190,6 +220,16 @@ export default function RecipeDetailScreen() {
                 <Text style={styles.secondaryBtnText}>
                   {copiedStatus ? "Copied!" : "Copy"}
                 </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.secondaryBtn}
+                onPress={handleDeletePress}
+              >
+                <MaterialIcons
+                  name="delete"
+                  size={16}
+                  color={Colors.on_error_container}
+                />
               </TouchableOpacity>
             </View>
 

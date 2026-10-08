@@ -26,3 +26,8 @@ export const updateRecipe = async ({
   const response = await apiClient.put(`/recipes/${id}`, data);
   return response.data;
 };
+
+export const deleteRecipe = async (id: string) => {
+  const response = await apiClient.delete(`/recipes/${id}`);
+  return response.data;
+};

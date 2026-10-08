@@ -28,6 +28,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
+import { SnackbarProvider } from "@/contexts/SnackbarContext";
 
 // Create the bridge between TanStack and the phone's hard drive
 const asyncStoragePersister = createAsyncStoragePersister({
@@ -82,32 +84,39 @@ export default function RootLayout() {
   }
 
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{
-        persister: asyncStoragePersister,
-        maxAge: 1000 * 60 * 60 * 24, // Match maxAge to gcTime (24 hours)
-      }}
-    >
-      <SafeAreaProvider>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+    <ActionSheetProvider>
+      <SnackbarProvider>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: asyncStoragePersister,
+            maxAge: 1000 * 60 * 60 * 24, // Match maxAge to gcTime (24 hours)
+          }}
         >
-          <PaperProvider theme={customPaperTheme}>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: "#FFF" },
-              }}
+          <SafeAreaProvider>
+            <ThemeProvider
+              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
             >
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="(recipes)" options={{ headerShown: false }} />
-            </Stack>
-            <StatusBar style="auto" />
-          </PaperProvider>
-        </ThemeProvider>
-        <Toast />
-      </SafeAreaProvider>
-    </PersistQueryClientProvider>
+              <PaperProvider theme={customPaperTheme}>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: "#FFF" },
+                  }}
+                >
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="(recipes)"
+                    options={{ headerShown: false }}
+                  />
+                </Stack>
+                <StatusBar style="auto" />
+              </PaperProvider>
+            </ThemeProvider>
+            <Toast />
+          </SafeAreaProvider>
+        </PersistQueryClientProvider>
+      </SnackbarProvider>
+    </ActionSheetProvider>
   );
 }

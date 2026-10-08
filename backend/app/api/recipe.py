@@ -89,7 +89,7 @@ async def create_recipe(recipe: RecipeCreate, user_id: str = "363eb45c-4152-4c1b
 
 
 @router.delete("/{recipe_id}")
-async def delete_recipe(recipe_id: UUID, user_id: str = Depends(verify_supabase_token)):
+async def delete_recipe(recipe_id: UUID, user_id: str = "363eb45c-4152-4c1b-8977-db9adbf465e4"):
      """Delete a recipe. (ON DELETE CASCADE handles all the ingredients/steps!)."""
      
      response = supabase.table("recipes").delete().eq("id", str(recipe_id)).eq("user_id", user_id).execute()

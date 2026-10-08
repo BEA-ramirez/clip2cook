@@ -45,44 +45,6 @@ export default function Clip2Cook() {
     );
   }
 
-  if (recipes.length === 0) {
-    return (
-      <View style={styles.emptyState}>
-        <View style={styles.emptyIconContainer}>
-          <MaterialIcons
-            name="content-paste"
-            size={24}
-            color={Colors.primary}
-          />
-        </View>
-        <Text style={styles.emptyTitle}>GETTING STARTED</Text>
-        <Text style={styles.emptyDesc}>
-          No recipes yet? Paste a recipe link to save your first recipe.
-        </Text>
-
-        <View style={styles.pasteInputContainer}>
-          <TextInput
-            style={styles.pasteInput}
-            placeholder="https://youtube.com/watch?v=..."
-            placeholderTextColor={Colors.text_muted}
-            editable={false}
-          />
-          <TouchableOpacity style={styles.pasteButton}>
-            <Text style={styles.pasteButtonText}>Paste</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={styles.addRecipeButton}
-          onPress={() => router.push("/(recipes)/form")}
-        >
-          <MaterialIcons name="add" size={20} color={Colors.on_primary} />
-          <Text style={styles.addRecipeButtonText}>Add Recipe</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.safeArea}>
       {/* Header */}
@@ -178,6 +140,40 @@ export default function Clip2Cook() {
             style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
           >
             <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : recipes && recipes.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <MaterialIcons
+                name="content-paste"
+                size={24}
+                color={Colors.primary}
+              />
+            </View>
+            <Text style={styles.emptyTitle}>GETTING STARTED</Text>
+            <Text style={styles.emptyDesc}>
+              No recipes yet? Paste a recipe link to save your first recipe.
+            </Text>
+
+            <View style={styles.pasteInputContainer}>
+              <TextInput
+                style={styles.pasteInput}
+                placeholder="https://youtube.com/watch?v=..."
+                placeholderTextColor={Colors.text_muted}
+                editable={false}
+              />
+              <TouchableOpacity style={styles.pasteButton}>
+                <Text style={styles.pasteButtonText}>Paste</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.addRecipeButton}
+              onPress={() => router.push("/(recipes)/form")}
+            >
+              <MaterialIcons name="add" size={20} color={Colors.on_primary} />
+              <Text style={styles.addRecipeButtonText}>Add Recipe</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <ScrollView

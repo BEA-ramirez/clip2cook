@@ -207,6 +207,8 @@ function RecipeFormContent({
     }
   };
 
+  console.log("🚨 CURRENT ZOD ERRORS:", JSON.stringify(errors, null, 2));
+
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -385,6 +387,11 @@ function RecipeFormContent({
                   )}
                 />
               </View>
+              {errors.source_url && (
+                <Text style={{ color: "red", fontSize: 12 }}>
+                  {errors.source_url.message}
+                </Text>
+              )}
             </View>
           </View>
 
