@@ -21,6 +21,7 @@ def _get_ydl_options(output_path_template: str) -> dict:
           'noplaylist': True,
           'quiet': False,
           'no_warnings': True,
+          'extractor_args': {'youtube': {'player_client': ['android', 'web']}}
      }
 
 

@@ -4,6 +4,8 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from openai import OpenAI
+from typing import List, Optional
+from litellm import completion
 
 client = OpenAI(
      api_key=os.getenv("GEMINI_API_KEY"),
@@ -11,66 +13,56 @@ client = OpenAI(
 )
 
 # define the exact JSON structure we want Gemini to return
-class Ingredients(BaseModel):
+class AI_Ingredient(BaseModel):
      name: str = Field(..., description="The name of the ingredient")
-     quantity: str | None = Field(None, description="The quantity (e.g., '1', '1.5', '1/2'). If the recipe says 'to taste', 'a pinch', or 'a dash', set this to null and put that phrase in the 'unit' field.")
-     unit: str | None = Field(..., description="The unit of measurement for the ingredient, cups, tbsp, grams, tsp, or to taste, a pinch, a dash etc. Return null if none.")
-     grams_amount: float|None = Field(None, description="The amount of the ingredient in grams. If not applicable or unable to calculate, return null.")
+     qty: Optional[str] = Field(None, description="Quantity (e.g., '1', '1/2'). Null if 'to taste'.")
+     unit: Optional[str] = Field(None, description="Unit of measurement (cups, tbsp, pinch).")
+     weight_grams: Optional[float] = Field(None, description="Grams if specified, else null.")
 
-class RecipeSchema(BaseModel):
-     title: str = Field(..., description="The title of the recipe")
-     slug: str = Field(..., description="A URL-friendly string of the title. Lowercase, words separated by hyphens. Example: 'artisan-sourdough-bread'")
-     recipe_by: str = Field(..., description="The author or source of the recipe")
-     description: str = Field(..., description="A brief description of the recipe")
-     prep_time_minutes: int|None = Field(None, description="The approximate preparation time in minutes. Must be an integer. For 1 hour, output 60. Return null if not mentioned.")
-     servings: int = Field(..., description="The number of individual people this recipe feeds. Always return a pure integer, e.g., 4.")
-     yield_amount: str | None = Field(None, description="The physical container or total batch size, e.g., 'One 9x9 inch baking pan', '2 dozen cookies', or '1 large loaf'. Return null if none.")
-     equipment: list[str] = Field(..., description="Any specific pans, skillets, or baking dishes mentioned (e.g., '9x13 glass baking dish').")
-     bake_time_minutes: int|None = Field(None, description="The approximate baking time inside the oven in minutes. Must be an integer. For 1 hour, output 60. Return null if not mentioned.")
-     temp_or_heat: str|None = Field(None, description="The temperature or heat level, e.g., '350°F', 'medium heat'. Return null if none.")
-     ingredients: list[Ingredients] = Field(..., description="A list of ingredients for the recipe")
-     instructions: list[str] = Field(
-        description=(
-            "A list of step-by-step instructions. Each step MUST start with a short, 2-to-5 word title, "
-            "followed immediately by a period, a space, and then the detailed instruction. "
-            "Example: 'Prepare the marinade. In a large bowl, whisk together the soy sauce, garlic, and ginger until combined.'"
-        )
-    )
-     is_complete: bool = Field(..., description="Return True if the text provided a full recipe. Return False if steps or quantities are missing and you need to watch the video.")
+class AI_Instruction(BaseModel):
+     step_number: int
+     description: str = Field(..., description="The detailed step instruction.")
+     timer_seconds: Optional[int] = Field(None, description="If the step mentions a specific duration (e.g., 'boil for 5 minutes'), convert it to total seconds (300). Null if no time is mentioned.")
 
+class AI_Equipment(BaseModel):
+     name: str
+
+class AI_RecipeExtraction(BaseModel):
+     title: str
+     description: str
+     recipe_by: str
+     yield_amount: Optional[str] = Field(None, description="Container or batch size (e.g., '1 loaf', '4 servings').")
+     prep_time: Optional[str] = Field(None, description="E.g., '15 mins'")
+     bake_time: Optional[str] = Field(None, description="E.g., '45 mins'")
+     temp: Optional[str] = Field(None, description="E.g., '350°F'")
+     ingredients: List[AI_Ingredient]
+     instructions: List[AI_Instruction]
+     equipment: List[AI_Equipment]
+     is_complete: bool = Field(..., description="True if recipe is full. False if missing quantities.")
+    
 # functions that talks to the Gemini API
 def extract_recipe_from_text(transcript: str) -> dict:
      """
      Takes a raw yt transcript string, feeds it to Gemini, 
      and returns a structured recipe dictionary.
      """
-     print("Connecting to gemini flash...")
-
-     prompt = f"""
-     You are an expert culinary assistant. Read the following video transcript and extract the recipe information.
-     If the transcript does not contain a recipe, return an empty JSON object.
-     Format your response EXACTLY as a raw JSON object that matches this schema:
-     {RecipeSchema.model_json_schema()}
+     print("Extracting from text using LiteLLM (Gemini -> Groq)...")
      
-     If the transcript mentions no specific quantities, use your best culinary judgment or write 'to taste'.
-     Do NOT include markdown blocks like ```json. Just return the raw JSON string.
+     primary_model = "gemini/gemini-3.5-flash" 
+     fallback_models = ["groq/openai/gpt-oss-20b"]
 
-     Transcript:
-     {transcript}
-     """
-
-     # using gemini-2.0-flash
-     response = client.chat.completions.create(
-          model="gemini-3.5-flash-lite", # You can use whichever Gemini model name worked for you previously
+     response = completion(
+          model=primary_model,
+          fallbacks=fallback_models,
           messages=[
-               {"role": "system", "content": "You are a culinary AI. Always return raw JSON."},
-               {"role": "user", "content": prompt}
-          ],
-          response_format={"type": "json_object"}, # This forces JSON mode!
+            {"role": "system", "content": "You are an expert culinary AI. Extract the recipe strictly adhering to the schema."},
+            {"role": "user", "content": f"Transcript:\n{transcript}"}
+        ],
+          response_format=AI_RecipeExtraction, 
           temperature=0.2
      )
      json_string = response.choices[0].message.content
-     recipe_data = RecipeSchema.model_validate_json(json_string)
+     recipe_data = AI_RecipeExtraction.model_validate_json(json_string)
      return recipe_data.model_dump()
 
      
@@ -82,28 +74,27 @@ def extract_recipe_from_video(video_path: str, caption: str) -> dict:
      """Heavy Path: Uploads an mp4, extracts the recipe, and deletes the video."""
      print("Uploading video to Gemini File API...")
      
-     # Upload the physical video file to Google's servers
+     # upload the physical video file to Google's servers
      video_file = clientVid.files.upload(file=video_path)
      
      print("Extracting recipe from video and caption...")
-     prompt = f"Watch this video and read the creator's caption. Combine the visual steps, spoken audio, and text caption to extract the complete recipe. If no quantities are mentioned, use best culinary judgment or write 'to taste'.\n\nCreator Caption: {caption}"
+     prompt = f"Watch this video and read the caption. Extract the complete recipe.\n\nCaption: {caption}"
      
      try:
-          # 2. Feed BOTH the video file and the text prompt to the model
+          # feed BOTH the video file and the text prompt to the model
           response = clientVid.models.generate_content(
-               model='gemini-3.5-flash-lite',
+               model='gemini-3.5-flash',
                contents=[video_file, prompt],
                config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_schema=RecipeSchema,
+                    response_schema=AI_RecipeExtraction,
                     temperature=0.2,
-                    system_instruction="You are an expert culinary assistant. Analyze the video and text to extract structured recipe data."
                ),
           )
           
-          recipe_data = RecipeSchema.model_validate_json(response.text)
+          recipe_data = AI_RecipeExtraction.model_validate_json(response.text)
           return recipe_data.model_dump()
      finally:
-          # CRITICAL: Always delete the file from Google's servers immediately!
+          # delete the file from Google's servers immediately!
           print("Cleaning up Gemini File API...")
           clientVid.files.delete(name=video_file.name)

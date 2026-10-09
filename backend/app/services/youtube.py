@@ -70,6 +70,8 @@ def process_youtube_url(url: str):
           print(transcript[:200] + "...")  # just show a snippet 
           
           recipe_data = extract_recipe_from_text(transcript)
+          recipe_data["source_url"] = url 
+          recipe_data["platform"] = "YouTube"
           print("Success! Gemini extracted the recipe.")
           print(recipe_data)
 
