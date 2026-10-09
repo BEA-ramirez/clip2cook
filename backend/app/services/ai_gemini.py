@@ -30,7 +30,18 @@ class AI_Equipment(BaseModel):
 class AI_RecipeExtraction(BaseModel):
      title: str
      description: str
-     recipe_by: str
+     recipe_by: Optional[str] = Field(
+          None, 
+          description="The person, author, or chef that created the recipe."
+     )
+     platform: Optional[str] = Field(
+          None, 
+          description="The source platform of the recipe. Choose from: Blog, Website, YouTube, TikTok, Instagram, Facebook."
+     )
+     notes: Optional[str] = Field(
+          None, 
+          description="Any additional notes, important reminders, tips, or storage instructions."
+     )
      yield_amount: Optional[str] = Field(None, description="Container or batch size (e.g., '1 loaf', '4 servings').")
      prep_time: Optional[str] = Field(None, description="E.g., '15 mins'")
      bake_time: Optional[str] = Field(None, description="E.g., '45 mins'")

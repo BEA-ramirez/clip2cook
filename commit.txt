@@ -1,1 +1,5 @@
-- Form text inputs keyboard aware scrollview implemented
+- MVP DONE (Im so happy)
+- connected backend ai pipeline to the extract page
+- implemented extract recipe card and utilized inside home screen
+- created api vars and hooks for extract recipe
+- fix: extract card loading state progress bar broken

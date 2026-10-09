@@ -20,6 +20,9 @@ import {
 } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import { useRecipes } from "@/hooks/use-recipe";
+import { useMutationState } from "@tanstack/react-query";
+import ExtractingRecipeCard from "@/components/extract-recipe-card";
+import { detectPlatform } from "@/hooks/use-extract";
 
 export default function Clip2Cook() {
   const router = useRouter();
@@ -27,6 +30,18 @@ export default function Clip2Cook() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: recipes = [], isLoading, isError } = useRecipes();
+
+  const pendingExtractionUrls = useMutationState({
+    filters: { mutationKey: ["extractRecipe"], status: "pending" },
+    select: (mutation) => mutation.state.variables as string,
+  });
+
+  const isExtracting = pendingExtractionUrls.length > 0;
+  const currentPlatform = isExtracting
+    ? detectPlatform(pendingExtractionUrls[0])
+    : "Web";
+
+  const showEmptyState = recipes.length === 0 && !isExtracting;
 
   const filteredRecipes = recipes.filter((recipe: any) =>
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -141,7 +156,7 @@ export default function Clip2Cook() {
           >
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        ) : recipes && recipes.length === 0 ? (
+        ) : showEmptyState ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconContainer}>
               <MaterialIcons
@@ -180,6 +195,9 @@ export default function Clip2Cook() {
             style={styles.listSection}
             contentContainerStyle={styles.contentContainer}
           >
+            {isExtracting && (
+              <ExtractingRecipeCard platformName={currentPlatform} />
+            )}
             {filteredRecipes.map((recipe: any, index: number) => (
               <TouchableOpacity
                 key={recipe.id}

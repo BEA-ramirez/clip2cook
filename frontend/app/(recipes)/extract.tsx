@@ -16,14 +16,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
+import { useExtractRecipe } from "@/hooks/use-extract";
 
 export default function ExtractRecipeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [url, setUrl] = useState("");
-  const [isExtracting, setIsExtracting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const { mutate: extractRecipe, isPending: isExtracting } = useExtractRecipe();
 
   // Handle clipboard paste
   const handlePaste = async () => {
@@ -39,7 +41,6 @@ export default function ExtractRecipeScreen() {
     }
   };
 
-  // Simulate extraction and navigate back to main screen
   const handleExtract = () => {
     if (!url.trim()) {
       setStatusMessage("Please enter or paste a URL first");
@@ -47,14 +48,8 @@ export default function ExtractRecipeScreen() {
       return;
     }
 
-    setIsExtracting(true);
-
-    // Simulate API call/Mutation trigger
-    setTimeout(() => {
-      setIsExtracting(false);
-      // Flow 1: Return to main list where a background loading state would be shown
-      router.back();
-    }, 1500);
+    extractRecipe(url.trim());
+    router.back();
   };
 
   return (
