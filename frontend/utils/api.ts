@@ -23,7 +23,7 @@ apiClient.interceptors.request.use(async (config) => {
   }
 
   // HEN LOG THE RESULTS
-  // console.log("=== 🚀 OUTGOING NETWORK REQUEST ===");
+  // console.log("=== OUTGOING NETWORK REQUEST ===");
   // console.log(
   //   " Supabase Auth Status:",
   //   token ? "TOKEN FOUND" : "NO TOKEN (User Logged Out)",

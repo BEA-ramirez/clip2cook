@@ -59,8 +59,8 @@ def extract_recipe_from_text(transcript: str) -> dict:
      """
      print("Extracting from text using LiteLLM (Gemini -> Groq)...")
      
-     primary_model = "gemini/gemini-3.5-flash" 
-     fallback_models = ["groq/openai/gpt-oss-20b"]
+     primary_model = "groq/llama-3.3-70b-versatile"
+     fallback_models = ["gemini/gemini-3.5-flash","groq/openai/gpt-oss-120b"]
 
      response = completion(
           model=primary_model,
@@ -94,7 +94,7 @@ def extract_recipe_from_video(video_path: str, caption: str) -> dict:
      try:
           # feed BOTH the video file and the text prompt to the model
           response = clientVid.models.generate_content(
-               model='gemini-3.5-flash',
+               model='gemini-3.5-flash-lite',
                contents=[video_file, prompt],
                config=types.GenerateContentConfig(
                     response_mime_type="application/json",

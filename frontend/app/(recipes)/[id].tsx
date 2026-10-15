@@ -17,6 +17,7 @@ import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
 import { useRecipeById, useDeleteRecipe } from "@/hooks/use-recipe";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useSnackbar } from "@/contexts/SnackbarContext";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
@@ -247,8 +248,11 @@ export default function RecipeDetailScreen() {
         <View style={styles.surfaceCard}>
           <View style={styles.noteHeaderTop}>
             <View>
-              <Text style={styles.eyebrow}>CULINARY NOTE #042</Text>
+              <Text style={styles.eyebrow}>
+                CULINARY NOTE ID #{recipe?.id.slice(0, 8)}
+              </Text>
               <Text style={styles.recipeMainTitle}>{recipe?.title}</Text>
+              <Text style={styles.metaText}>{recipe?.description}</Text>
             </View>
             <View style={styles.pinDot} />
           </View>
@@ -264,16 +268,51 @@ export default function RecipeDetailScreen() {
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
-              <MaterialIcons name="group" size={16} color={Colors.text_muted} />
+              <MaterialCommunityIcons
+                name="pot-steam-outline"
+                size={16}
+                color={Colors.text_muted}
+              />
+              <Text style={styles.metaText}>{recipe?.bake_time || "--"}</Text>
+            </View>
+            <View style={styles.metaDivider} />
+            <View style={styles.metaItem}>
+              <MaterialCommunityIcons
+                name="chef-hat"
+                size={16}
+                color={Colors.text_muted}
+              />
+              <Text style={styles.metaText}>{recipe?.recipe_by || "--"}</Text>
+            </View>
+            <View style={styles.metaDivider} />
+            <View style={styles.metaItem}>
+              <MaterialCommunityIcons
+                name="cookie"
+                size={16}
+                color={Colors.text_muted}
+              />
               <Text style={styles.metaText}>
                 {recipe?.yield_amount || "--"}
               </Text>
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
-              <Text style={styles.metaTextBold}>
-                Source:{" "}
-                {recipe?.platform || recipe?.recipe_by || "Manual Entry"}
+              <MaterialIcons
+                name="branding-watermark"
+                size={16}
+                color={Colors.text_muted}
+              />
+              <Text style={styles.metaText}>{recipe?.platform || "--"}</Text>
+            </View>
+            <View style={styles.metaDivider} />
+
+            <View style={styles.metaItem}>
+              <Text
+                style={[styles.metaTextBold, { width: "80%" }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                Source: {recipe?.source_url || "Manual Entry"}
               </Text>
               {recipe?.source_url ? (
                 <MaterialIcons
@@ -346,6 +385,7 @@ export default function RecipeDetailScreen() {
                           {ing.unit ? `${ing.unit} ` : ""}
                         </Text>
                         {ing.name}
+                        {ing.weight_grams && ` (${ing.weight_grams} g)`}
                       </Text>
                       {ing.note ? (
                         <Text
@@ -486,9 +526,10 @@ export default function RecipeDetailScreen() {
                               }}
                             >
                               {step.timer_seconds
-                                ? `${Math.floor(Number(step.timer_seconds) / 60)} min`
-                                : null}{" "}
-                              Timer
+                                ? step.timer_seconds < 60
+                                  ? `${step.timer_seconds} sec Timer`
+                                  : `${Math.floor(Number(step.timer_seconds / 60))} min Timer`
+                                : null}
                             </Text>
                           </View>
                           <View
@@ -894,11 +935,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   ingMainText: {
-    ...Typography.bodyLg,
+    ...Typography.bodyMd,
     color: Colors.on_surface,
   },
   ingQty: {
-    fontWeight: "600",
+    ...Typography.bodyMdBold,
     color: Colors.on_surface,
   },
   ingNoteText: {
@@ -911,8 +952,7 @@ const styles = StyleSheet.create({
     color: Colors.text_muted,
   },
   equipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 10,
     marginTop: Spacing.xs,
   },
@@ -925,7 +965,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border_default,
     borderRadius: Radius.lg,
     padding: 12,
-    width: "48%", // Approx 2 columns
   },
   equipText: {
     ...Typography.bodyMd,
