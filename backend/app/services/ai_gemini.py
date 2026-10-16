@@ -18,6 +18,7 @@ class AI_Ingredient(BaseModel):
      qty: Optional[str] = Field(None, description="Quantity (e.g., '1', '1/2'). Null if 'to taste'.")
      unit: Optional[str] = Field(None, description="Unit of measurement (cups, tbsp, pinch).")
      weight_grams: Optional[float] = Field(None, description="Grams if specified, else null.")
+     group_name: Optional[str] = Field(None, description="The subrecipe or section this belongs to (e.g., 'Dough', 'Filling', 'Glaze'). Null if single flat list.")
 
 class AI_Instruction(BaseModel):
      step_number: int
@@ -66,7 +67,7 @@ def extract_recipe_from_text(transcript: str) -> dict:
           model=primary_model,
           fallbacks=fallback_models,
           messages=[
-            {"role": "system", "content": "You are an expert culinary AI. Extract the recipe strictly adhering to the schema."},
+            {"role": "system", "content": "You are an expert culinary AI. Extract the recipe strictly adhering to the schema. If the recipe has distinct parts like a crust and a filling, assign a group_name to each ingredient."},
             {"role": "user", "content": f"Transcript:\n{transcript}"}
         ],
           response_format=AI_RecipeExtraction, 
@@ -89,7 +90,7 @@ def extract_recipe_from_video(video_path: str, caption: str) -> dict:
      video_file = clientVid.files.upload(file=video_path)
      
      print("Extracting recipe from video and caption...")
-     prompt = f"Watch this video and read the caption. Extract the complete recipe.\n\nCaption: {caption}"
+     prompt = f"Watch this video and read the caption. If the recipe has distinct parts like a crust and a filling, assign a group_name to each ingredient. Extract the complete recipe.\n\nCaption: {caption}"
      
      try:
           # feed BOTH the video file and the text prompt to the model

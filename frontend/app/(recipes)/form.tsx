@@ -5,10 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -17,7 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
 import { RecipeFormSchema, RecipeFormValues } from "@/schemas/recipe-schema";
-import { useForm, Controller, useFieldArray } from "react-hook-form";
+import {
+  useForm,
+  Controller,
+  useFieldArray,
+  Control,
+  UseFormSetValue,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCreateRecipe,
@@ -68,6 +71,7 @@ export default function RecipeFormScreen() {
               name: ing.name || "",
               qty: ing.qty || "",
               unit: ing.unit || "",
+              group_name: ing.group_name || "",
             })) || [],
           equipment:
             existingRecipe.equipment?.map((eq: any) => ({
@@ -105,6 +109,168 @@ export default function RecipeFormScreen() {
       isEditMode={isEditMode}
       recipeId={id}
     />
+  );
+}
+
+type SectionCardItemProps = {
+  initialGroupName: string;
+  items: Array<{
+    id: string;
+    qty?: string;
+    unit?: string;
+    name?: string;
+    weight_grams?: string | null;
+    group_name?: string;
+    originalIndex: number;
+  }>;
+  control: Control<RecipeFormValues>;
+  setValue: UseFormSetValue<RecipeFormValues>;
+  appendIngredient: (value: {
+    qty: string;
+    unit: string;
+    name: string;
+    weight_grams: string;
+    group_name: string;
+  }) => void;
+  removeIngredient: (index: number) => void;
+};
+
+export function SectionCardItem({
+  initialGroupName,
+  items,
+  control,
+  setValue,
+  appendIngredient,
+  removeIngredient,
+}: SectionCardItemProps) {
+  const [sectionTitle, setSectionTitle] = useState(
+    initialGroupName === "Main Ingredients" ? "" : initialGroupName,
+  );
+
+  return (
+    <View style={styles.sectionCardContainer}>
+      {/* Section Header Bar */}
+      <View style={styles.sectionCardHeaderRow}>
+        <MaterialIcons name="folder-open" size={18} color={Colors.primary} />
+        <TextInput
+          style={styles.sectionCardTitleInput}
+          value={sectionTitle}
+          placeholder="Section Name (e.g. Dough)"
+          placeholderTextColor={Colors.text_muted}
+          onChangeText={(text) => {
+            setSectionTitle(text);
+            items.forEach((item) => {
+              setValue(`ingredients.${item.originalIndex}.group_name`, text);
+            });
+          }}
+        />
+        <Text style={styles.sectionCountText}>{items.length} items</Text>
+      </View>
+
+      {/* Ingredients inside this section */}
+      <View style={styles.listContainer}>
+        {items.map((ing) => {
+          const index = ing.originalIndex;
+          return (
+            <View key={ing.id} style={styles.itemRow}>
+              <MaterialIcons
+                name="drag-indicator"
+                size={18}
+                color={Colors.outline_variant}
+              />
+              <View style={{ flex: 1, gap: 4 }}>
+                {/* Qty, Unit, and Weight Row */}
+                <View style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}>
+                  <Controller
+                    control={control}
+                    name={`ingredients.${index}.qty`}
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={styles.smallInput}
+                        placeholder="Qty"
+                        value={value || ""}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name={`ingredients.${index}.unit`}
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={styles.smallInput}
+                        placeholder="Unit"
+                        value={value || ""}
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={control}
+                    name={`ingredients.${index}.weight_grams`}
+                    render={({ field: { onChange, value } }) => (
+                      <TextInput
+                        style={styles.smallInput}
+                        placeholder="Grams"
+                        keyboardType="numeric"
+                        value={
+                          value !== null && value !== undefined
+                            ? String(value)
+                            : ""
+                        }
+                        onChangeText={onChange}
+                      />
+                    )}
+                  />
+                </View>
+                {/* Ingredient Name */}
+                <Controller
+                  control={control}
+                  name={`ingredients.${index}.name`}
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={styles.descInput}
+                      placeholder="Ingredient name (e.g. Unsalted Butter)"
+                      value={value || ""}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => removeIngredient(index)}
+              >
+                <MaterialIcons
+                  name="close"
+                  size={16}
+                  color={Colors.text_muted}
+                />
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Add Ingredient specifically to THIS section */}
+      <TouchableOpacity
+        style={styles.addNestedButton}
+        onPress={() =>
+          appendIngredient({
+            qty: "",
+            unit: "",
+            name: "",
+            weight_grams: "",
+            group_name: sectionTitle,
+          })
+        }
+      >
+        <MaterialIcons name="add" size={16} color={Colors.primary} />
+        <Text style={styles.addNestedButtonText}>
+          Add to {sectionTitle || "Section"}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -158,6 +324,25 @@ function RecipeFormContent({
   } = useFieldArray({ control, name: "equipment" });
 
   const currentTags = watch("tags") || [];
+
+  // Group current ingredient fields by their group_name
+  const groupedIngredientsMap = ingredientFields.reduce(
+    (acc, field, index) => {
+      const group = field.group_name || "Main Ingredients";
+      if (!acc[group]) {
+        acc[group] = [];
+      }
+      acc[group].push({ ...field, originalIndex: index });
+      return acc;
+    },
+    {} as Record<
+      string,
+      ((typeof ingredientFields)[number] & { originalIndex: number })[]
+    >,
+  );
+
+  // Get a unique list of existing group names for quick dropdown/suggestions
+  const existingGroups = Object.keys(groupedIngredientsMap);
 
   const handleAddTag = (newTag: string) => {
     if (newTag.trim() && !currentTags.includes(newTag.trim())) {
@@ -415,75 +600,36 @@ function RecipeFormContent({
             </View>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Specify measurable amounts, prep states, or knife cuts.
+            Specify measurable amounts, prep states, or knife cuts. Group
+            ingredients by sections (e.g., Dough, Filling) for baking clarity.
           </Text>
 
-          <View style={styles.listContainer}>
-            {ingredientFields.map((ing, index) => (
-              <View key={ing.id} style={styles.itemRow}>
-                <MaterialIcons
-                  name="drag-indicator"
-                  size={18}
-                  color={Colors.outline_variant}
+          {Object.entries(groupedIngredientsMap).map(
+            ([initialGroupName, items], sectionIndex) => {
+              // Use local state for the input text so typing never loses focus or triggers re-map loops
+              return (
+                <SectionCardItem
+                  key={`section-${sectionIndex}`}
+                  initialGroupName={initialGroupName}
+                  items={items}
+                  control={control}
+                  setValue={setValue}
+                  appendIngredient={appendIngredient}
+                  removeIngredient={removeIngredient}
                 />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <View
-                    style={{ flexDirection: "row", gap: 6, marginBottom: 4 }}
-                  >
-                    <Controller
-                      control={control}
-                      name={`ingredients.${index}.qty`}
-                      render={({ field: { onChange, value } }) => (
-                        <TextInput
-                          style={styles.qtyInput}
-                          placeholder="Qty"
-                          value={value}
-                          onChangeText={onChange}
-                        />
-                      )}
-                    />
-                    <Controller
-                      control={control}
-                      name={`ingredients.${index}.unit`}
-                      render={({ field: { onChange, value } }) => (
-                        <TextInput
-                          style={styles.qtyInput}
-                          placeholder="Unit"
-                          value={value}
-                          onChangeText={onChange}
-                        />
-                      )}
-                    />
-                  </View>
-                  <Controller
-                    control={control}
-                    name={`ingredients.${index}.name`}
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={styles.descInput}
-                        placeholder="Ingredient name"
-                        value={value}
-                        onChangeText={onChange}
-                      />
-                    )}
-                  />
-                </View>
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => removeIngredient(index)}
-                >
-                  <MaterialIcons
-                    name="close"
-                    size={16}
-                    color={Colors.text_muted}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
+              );
+            },
+          )}
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => appendIngredient({ qty: "", unit: "", name: "" })}
+            onPress={() =>
+              appendIngredient({
+                qty: "",
+                unit: "",
+                name: "",
+                group_name: "",
+              })
+            }
           >
             <MaterialIcons name="add" size={18} color={Colors.on_surface} />
             <Text style={styles.addButtonText}>Add Ingredient</Text>
@@ -1104,4 +1250,70 @@ const styles = StyleSheet.create({
     color: Colors.text_muted,
   },
   dot: { color: Colors.border_default },
+  groupHeaderInput: {
+    ...Typography.labelMd,
+    fontWeight: "700",
+    color: Colors.primary,
+    backgroundColor: Colors.surface_container,
+    borderWidth: 1,
+    borderColor: Colors.border_default,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 2,
+    marginBottom: 4,
+  },
+  sectionCardContainer: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border_default,
+    borderRadius: Radius.lg,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  sectionCardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: Spacing.xs,
+    paddingBottom: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border_default,
+  },
+  sectionCardTitleInput: {
+    flex: 1,
+    ...Typography.bodyMdBold,
+    color: Colors.on_surface,
+    padding: 0,
+  },
+  sectionCountText: {
+    ...Typography.labelSm,
+    color: Colors.text_muted,
+  },
+  addNestedButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 6,
+    marginTop: 4,
+    backgroundColor: Colors.surface_container,
+    borderRadius: Radius.sm,
+  },
+  addNestedButtonText: {
+    ...Typography.labelSm,
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  smallInput: {
+    flex: 1,
+    ...Typography.labelMd,
+    color: Colors.on_surface,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border_default,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 2,
+    textAlign: "center",
+  },
 });

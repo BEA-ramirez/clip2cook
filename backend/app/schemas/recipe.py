@@ -12,6 +12,7 @@ class IngredientBase(BaseModel):
      unit: Optional[str] = None
      name: str
      weight_grams: Optional[float] = None
+     group_name: Optional[str] = None
 
 class InstructionBase(BaseModel):
      step_number: int

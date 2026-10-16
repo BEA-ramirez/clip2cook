@@ -4,6 +4,8 @@ export const IngredientSchema = z.object({
   qty: z.string().optional().or(z.literal("")),
   unit: z.string().optional().or(z.literal("")),
   name: z.string().min(1, "Ingredient name is required"),
+  group_name: z.string().optional().or(z.literal("")),
+  weight_grams: z.string().optional().or(z.literal("")),
 });
 
 export const InstructionSchema = z.object({

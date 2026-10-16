@@ -336,74 +336,107 @@ export default function RecipeDetailScreen() {
         </View>
 
         {/* INGREDIENTS SECTION */}
-        {recipe.ingredients && recipe.ingredients.length > 0 && (
-          <View style={styles.surfaceCard}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <View style={styles.sectionNotch} />
-                <Text style={styles.sectionTitle}>INGREDIENTS</Text>
-              </View>
-              <Text style={styles.counterText}>
-                {checkedIngredients.size - 1} / {recipe?.ingredients.length}{" "}
-                ready
-              </Text>
-            </View>
-            <Text style={styles.sectionDesc}>
-              Tap to check off as you prepare
-            </Text>
+        {recipe.ingredients &&
+          recipe.ingredients.length > 0 &&
+          (() => {
+            // Group ingredients by group_name in memory
+            const groupedIngredients = recipe.ingredients.reduce(
+              (acc: Record<string, any[]>, ing: any) => {
+                const group =
+                  ing.group_name && ing.group_name.trim() !== ""
+                    ? ing.group_name
+                    : "Ingredients";
+                if (!acc[group]) {
+                  acc[group] = [];
+                }
+                acc[group].push(ing);
+                return acc;
+              },
+              {},
+            );
 
-            <View style={styles.listContainer}>
-              {recipe?.ingredients.map((ing: any) => {
-                const isChecked = checkedIngredients.has(ing.id);
-                return (
-                  <TouchableOpacity
-                    key={ing.id}
-                    style={styles.checkRow}
-                    onPress={() => toggleIngredient(ing.id)}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialIcons
-                      name={isChecked ? "check-box" : "check-box-outline-blank"}
-                      size={20}
-                      color={isChecked ? Colors.primary : Colors.text_muted}
-                      style={styles.checkBoxIcon}
-                    />
-                    <View style={styles.checkTextContainer}>
-                      <Text
-                        style={[
-                          styles.ingMainText,
-                          isChecked && styles.textStrikethrough,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.ingQty,
-                            isChecked && styles.textStrikethrough,
-                          ]}
-                        >
-                          {ing.qty ? `${ing.qty} ` : ""}
-                          {ing.unit ? `${ing.unit} ` : ""}
-                        </Text>
-                        {ing.name}
-                        {ing.weight_grams && ` (${ing.weight_grams} g)`}
-                      </Text>
-                      {ing.note ? (
-                        <Text
-                          style={[
-                            styles.ingNoteText,
-                            isChecked && styles.textStrikethrough,
-                          ]}
-                        >
-                          {ing.note}
-                        </Text>
-                      ) : null}
+            return (
+              <View style={styles.surfaceCard}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={styles.sectionNotch} />
+                    <Text style={styles.sectionTitle}>INGREDIENTS</Text>
+                  </View>
+                  <Text style={styles.counterText}>
+                    {checkedIngredients.size} / {recipe.ingredients.length}{" "}
+                    ready
+                  </Text>
+                </View>
+                <Text style={styles.sectionDesc}>
+                  Tap to check off as you prepare
+                </Text>
+
+                {/* Map through each group section */}
+                {(
+                  Object.entries(groupedIngredients) as unknown as [
+                    string,
+                    any[],
+                  ][]
+                ).map(([groupName, items]) => (
+                  <View key={groupName} style={{ marginTop: 8 }}>
+                    {/* Section Subheader */}
+                    {groupName !== "Ingredients" && (
+                      <Text style={styles.subSectionHeader}>{groupName}</Text>
+                    )}
+
+                    <View style={styles.listContainer}>
+                      {items.map((ing: any) => {
+                        const isChecked = checkedIngredients.has(ing.id);
+                        return (
+                          <TouchableOpacity
+                            key={ing.id}
+                            style={styles.checkRow}
+                            onPress={() => toggleIngredient(ing.id)}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialIcons
+                              name={
+                                isChecked
+                                  ? "check-box"
+                                  : "check-box-outline-blank"
+                              }
+                              size={20}
+                              color={
+                                isChecked ? Colors.primary : Colors.text_muted
+                              }
+                              style={styles.checkBoxIcon}
+                            />
+                            <View style={styles.checkTextContainer}>
+                              <Text
+                                style={[
+                                  styles.ingMainText,
+                                  isChecked && styles.textStrikethrough,
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.ingQty,
+                                    isChecked && styles.textStrikethrough,
+                                  ]}
+                                >
+                                  {ing.qty ? `${ing.qty} ` : ""}
+                                  {ing.unit ? `${ing.unit} ` : ""}
+                                </Text>
+                                {ing.name}
+                                {ing.weight_grams
+                                  ? ` (${ing.weight_grams}g)`
+                                  : ""}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        )}
+                  </View>
+                ))}
+              </View>
+            );
+          })()}
 
         {/* EQUIPMENT SECTION */}
         {recipe.equipment && recipe.equipment.length > 0 && (
@@ -1125,5 +1158,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
+  },
+  subSectionHeader: {
+    ...Typography.labelMd,
+    fontWeight: "700",
+    color: Colors.primary,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+    textTransform: "uppercase",
   },
 });
