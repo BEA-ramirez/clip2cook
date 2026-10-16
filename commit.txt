@@ -1,1 +1,1 @@
-- Updated detail screen page UI
+- Fix extract recipe card loading component

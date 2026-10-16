@@ -41,7 +41,7 @@ export default function Clip2Cook() {
     ? detectPlatform(pendingExtractionUrls[0])
     : "Web";
 
-  const showEmptyState = recipes.length === 0 && !isExtracting;
+  const showEmptyState = isLoading && recipes.length === 0 && !isExtracting;
 
   const filteredRecipes = recipes.filter((recipe: any) =>
     recipe.title.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -195,9 +195,7 @@ export default function Clip2Cook() {
             style={styles.listSection}
             contentContainerStyle={styles.contentContainer}
           >
-            {isExtracting && (
-              <ExtractingRecipeCard platformName={currentPlatform} />
-            )}
+            {true && <ExtractingRecipeCard platformName={currentPlatform} />}
             {filteredRecipes.map((recipe: any, index: number) => (
               <TouchableOpacity
                 key={recipe.id}

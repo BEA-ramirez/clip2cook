@@ -19,25 +19,16 @@ export default function ExtractingRecipeCard({
   const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(progress, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: false,
-        }),
-        Animated.timing(progress, {
-          toValue: 0,
-          duration: 1200,
-          useNativeDriver: false,
-        }),
-      ]),
-    ).start();
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 8000,
+      useNativeDriver: false,
+    }).start();
   }, [progress]);
 
   const widthInterpolation = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["20%", "85%"],
+    inputRange: [0, 0.3, 0.7, 0.8, 0.9, 1],
+    outputRange: ["5%", "45%", "75%", "92%", "96%", "98%"],
   });
 
   return (

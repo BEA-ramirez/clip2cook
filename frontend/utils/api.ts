@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 
 // 👇 FIX: Changed 8081 to 8000
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://192.168.254.107:8000/api/v1";
+  process.env.EXPO_PUBLIC_API_URL || "http://192.168.254.104:8000/api/v1";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
