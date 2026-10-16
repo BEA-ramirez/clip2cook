@@ -194,8 +194,11 @@ export default function Clip2Cook() {
           <ScrollView
             style={styles.listSection}
             contentContainerStyle={styles.contentContainer}
+            showsVerticalScrollIndicator={false}
           >
-            {true && <ExtractingRecipeCard platformName={currentPlatform} />}
+            {isExtracting && (
+              <ExtractingRecipeCard platformName={currentPlatform} />
+            )}
             {filteredRecipes.map((recipe: any, index: number) => (
               <TouchableOpacity
                 key={recipe.id}
@@ -325,8 +328,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
   contentContainer: {
-    flex: 1,
     gap: Spacing.sm,
+    paddingBottom: 100,
   },
   searchContainer: {
     flexDirection: "row",
@@ -406,6 +409,7 @@ const styles = StyleSheet.create({
     textTransform: "none",
   },
   listSection: {
+    flex: 1,
     gap: Spacing.sm,
   },
   recipeCard: {

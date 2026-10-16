@@ -26,23 +26,16 @@ export function useRecipeById(id: string) {
 
 export function useCreateRecipe() {
   const queryClient = useQueryClient();
+  const { showSnackbar } = useSnackbar();
 
   return useMutation({
     mutationFn: createRecipe,
     onSuccess: (data) => {
-      Toast.show({
-        type: "success",
-        text1: "Recipe Saved!",
-        text2: "Successfully added to your notebook.",
-      });
+      showSnackbar("Recipe Saved!");
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
     onError: (error: any) => {
-      Toast.show({
-        type: "error",
-        text1: "Error saving recipe",
-        text2: error.message || "Please try again later.",
-      });
+      showSnackbar("Error saving recipe");
       console.error("Failed to save recipe:", error);
     },
   });
@@ -50,39 +43,33 @@ export function useCreateRecipe() {
 
 export function useUpdateRecipe() {
   const queryClient = useQueryClient();
+  const { showSnackbar } = useSnackbar();
 
   return useMutation({
     mutationFn: updateRecipe,
     onSuccess: (_, variables) => {
-      Toast.show({ type: "success", text1: "Recipe Updated!" });
+      showSnackbar("Recipe Updated!");
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
       queryClient.invalidateQueries({ queryKey: ["recipe", variables.id] });
     },
     onError: (error: any) => {
-      Toast.show({
-        type: "error",
-        text1: "Error updating recipe",
-        text2: error.message,
-      });
+      showSnackbar("Error updating recipe");
     },
   });
 }
 
 export function useDeleteRecipe() {
   const queryClient = useQueryClient();
+  const { showSnackbar } = useSnackbar();
 
   return useMutation({
     mutationFn: deleteRecipe,
     onSuccess: (_, variables) => {
-      Toast.show({ type: "success", text1: "Recipe Deleted!" });
+      showSnackbar("Recipe Deleted!");
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
     },
     onError: (error: any) => {
-      Toast.show({
-        type: "error",
-        text1: "Error deleting recipe",
-        text2: error.message,
-      });
+      showSnackbar("Error deleting recipe");
     },
   });
 }

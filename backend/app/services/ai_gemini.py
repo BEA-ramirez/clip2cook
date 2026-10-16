@@ -59,8 +59,8 @@ def extract_recipe_from_text(transcript: str) -> dict:
      """
      print("Extracting from text using LiteLLM (Gemini -> Groq)...")
      
-     primary_model = "groq/llama-3.3-70b-versatile"
-     fallback_models = ["gemini/gemini-3.5-flash","groq/openai/gpt-oss-120b"]
+     primary_model = "gemini/gemini-3.5-flash-lite"
+     fallback_models = ["groq/llama-3.3-70b-versatile" ,"groq/openai/gpt-oss-120b"]
 
      response = completion(
           model=primary_model,
