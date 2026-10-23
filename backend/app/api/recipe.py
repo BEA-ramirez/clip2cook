@@ -15,11 +15,11 @@ from app.schemas.recipe import RecipeCreate, RecipeResponse
 
 router = APIRouter()
 
-@router.get("/")
+@router.get("/", response_model=List[RecipeResponse])
 async def get_all_my_recipes(user_id: str = "363eb45c-4152-4c1b-8977-db9adbf465e4"):
      """Fetch all saved recipes for the logged-in user (Summary View)."""
      
-     response = supabase.table("recipes").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+     response = supabase.table("recipes").select("*, tags(*)").eq("user_id", user_id).order("created_at", desc=True).execute()
      return response.data
 
 @router.get("/{recipe_id}")

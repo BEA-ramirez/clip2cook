@@ -1,6 +1,5 @@
-# Defines the exact JSON shape of a Recipe
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, model_validator
+from typing import List, Optional, Any
 from uuid import UUID
 from datetime import datetime
 
@@ -63,8 +62,26 @@ class RecipeResponse(RecipeCreate):
      user_id: UUID
      created_at: datetime
      updated_at: datetime
-     
+          
      ingredients: List[IngredientResponse] = []
      instructions: List[InstructionResponse] = []
      equipment: List[EquipmentResponse] = []
-     tags: List[TagResponse] = []
+     tags: List[str] = []
+     
+     @model_validator(mode="before")
+     @classmethod
+     def flatten_tags(cls, data: Any) -> Any:
+          if isinstance(data, dict):
+               raw_tags = data.get("tags", [])
+               if raw_tags and isinstance(raw_tags, list):
+                    flattened = []
+                    for t in raw_tags:
+                         if isinstance(t, dict):
+                              # Safely look for 'tag_name' or 'name'
+                              name = t.get("tag_name") or t.get("name")
+                              if name:
+                                   flattened.append(str(name))
+                         elif isinstance(t, str):
+                              flattened.append(t)
+                    data["tags"] = flattened
+          return data

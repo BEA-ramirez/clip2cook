@@ -43,9 +43,24 @@ export default function Clip2Cook() {
 
   const showEmptyState = isLoading && recipes.length === 0 && !isExtracting;
 
-  const filteredRecipes = recipes.filter((recipe: any) =>
-    recipe.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredRecipes = recipes.filter((recipe: any) => {
+    const matchesTitle = recipe.title
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesPlatform = recipe.platform
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesAuthor = recipe.recipe_by
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesTag = recipe.tags?.some((tag: string) =>
+      tag.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+
+    return matchesTitle || matchesPlatform || matchesAuthor || matchesTag;
+  });
+
+  //console.log("Recipe:", JSON.stringify(filteredRecipes[0]));
 
   if (isError) {
     return (
