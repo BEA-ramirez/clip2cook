@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -13,11 +13,111 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
+import * as Notifications from "expo-notifications";
+import * as Haptics from "expo-haptics";
 import { Colors, Spacing, Typography, Radius } from "@/constants/theme";
 import { useRecipeById, useDeleteRecipe } from "@/hooks/use-recipe";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+
+const handleStartTimer = async (
+  stepNumber: number,
+  timerSeconds: string | number,
+  recipeId: string,
+  recipeTitle: string | undefined,
+  activeTimer: any,
+  setActiveTimer: Function,
+  setCurrentTime: Function,
+) => {
+  const seconds = Number(timerSeconds);
+  if (isNaN(seconds) || seconds <= 0) return;
+
+  // COMMENTED OUT NOTIFICATION CANCEL LOGIC:
+
+  if (activeTimer?.notificationId) {
+    await Notifications.cancelScheduledNotificationAsync(
+      activeTimer.notificationId,
+    );
+  }
+
+  let notificationId;
+  // COMMENTED OUT NOTIFICATION SCHEDULE LOGIC:
+
+  try {
+    notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `Step ${stepNumber} Timer Done!`,
+        body: `Your timer for "${recipeTitle || "Recipe"}" has finished.`,
+        sound: true,
+        data: { recipeId },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds,
+        repeats: false,
+      },
+    });
+  } catch (e) {
+    console.log("Error scheduling notification:", e);
+  }
+
+  const now = Date.now();
+  setActiveTimer({
+    stepNumber,
+    endTime: now + seconds * 1000,
+    total: seconds,
+    notificationId,
+  });
+  setCurrentTime(now);
+};
+
+const handleResetTimer = async (
+  activeTimer: any,
+  recipeId: string,
+  recipeTitle: string | undefined,
+  setActiveTimer: Function,
+  setCurrentTime: Function,
+) => {
+  if (!activeTimer) return;
+
+  // COMMENTED OUT NOTIFICATION CANCEL LOGIC:
+
+  if (activeTimer.notificationId) {
+    await Notifications.cancelScheduledNotificationAsync(
+      activeTimer.notificationId,
+    );
+  }
+
+  let notificationId;
+  // COMMENTED OUT NOTIFICATION SCHEDULE LOGIC:
+
+  try {
+    notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `Step ${activeTimer.stepNumber} Timer Done!`,
+        body: `Your timer for "${recipeTitle || "Recipe"}" has finished.`,
+        sound: true,
+        data: { recipeId },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: activeTimer.total,
+        repeats: false,
+      },
+    });
+  } catch (e) {
+    console.log("Error resetting notification:", e);
+  }
+
+  const now = Date.now();
+  setActiveTimer({
+    ...activeTimer,
+    endTime: now + activeTimer.total * 1000,
+    notificationId,
+  });
+  setCurrentTime(now);
+};
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
@@ -30,17 +130,115 @@ export default function RecipeDetailScreen() {
 
   // Interactive States
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
-    new Set(["7"]),
-  ); // Initially checked oil for demo
+    new Set(),
+  );
   const [checkedEquipment, setCheckedEquipment] = useState<Set<number>>(
     new Set(),
   );
+
+  // Timer State with Timestamping & Notification ID tracking
   const [activeTimer, setActiveTimer] = useState<{
     stepNumber: number;
-    remaining: number;
+    endTime: number;
     total: number;
+    notificationId?: string;
   } | null>(null);
+
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [copiedStatus, setCopiedStatus] = useState(false);
+
+  // COMMENTED OUT NOTIFICATION HANDLER & PERMISSION SETUP:
+
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+
+    const setupNotifications = async () => {
+      // android requires notif channel
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "Timer Notifications",
+          importance: 5, // 5 = MAX importance (replaces AndroidImportance.MAX)
+          vibrationPattern: [0, 250, 250, 250],
+          sound: "default",
+        });
+      }
+
+      // permission check
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") {
+        await Notifications.requestPermissionsAsync();
+      }
+    };
+
+    setupNotifications();
+  }, []);
+
+  // Tick interval to update current time for accurate countdown display
+  useEffect(() => {
+    if (!activeTimer) return;
+
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeTimer]);
+
+  // COMMENTED OUT NOTIFICATION RESPONSE LISTENER:
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data as {
+          recipeId?: string;
+        };
+        const targetRecipeId = data?.recipeId;
+
+        if (targetRecipeId) {
+          // Navigate back to this exact recipe detail screen
+          router.push({
+            pathname: "/(recipes)/[id]",
+            params: { id: targetRecipeId },
+          });
+        }
+      },
+    );
+
+    return () => subscription.remove();
+  }, [router]);
+
+  const remainingSeconds = activeTimer
+    ? Math.max(0, Math.ceil((activeTimer.endTime - currentTime) / 1000))
+    : 0;
+
+  // track whether the zero-alert has already fired for the current timer session
+  const hasAlertedRef = useRef(false);
+
+  // watch for when remainingSeconds hits 0 while app is active
+  useEffect(() => {
+    if (!activeTimer) {
+      hasAlertedRef.current = false;
+      return;
+    }
+
+    if (remainingSeconds === 0 && !hasAlertedRef.current) {
+      hasAlertedRef.current = true;
+
+      // Trigger strong haptic feedback / vibration pattern
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else if (remainingSeconds > 0 && hasAlertedRef.current) {
+      // Reset alert flag if timer is restarted or reset
+      hasAlertedRef.current = false;
+    }
+  }, [remainingSeconds, activeTimer]);
 
   const toggleIngredient = (ingId: string) => {
     const newSet = new Set(checkedIngredients);
@@ -57,7 +255,8 @@ export default function RecipeDetailScreen() {
   };
 
   const copyRecipe = async () => {
-    const text = `Chicken Adobo:\n- 500g chicken\n- 1/2 cup soy sauce\n- 1/2 cup cane vinegar\n- 4 cloves garlic\n- 1 dried bay leaf\n- 1 tsp black peppercorns\n- 1 tbsp oil`;
+    if (!recipe) return;
+    const text = `${recipe.title}:\n${recipe.ingredients?.map((i: any) => `- ${i.qty || ""} ${i.unit || ""} ${i.name}`).join("\n")}`;
     await Clipboard.setStringAsync(text);
     setCopiedStatus(true);
     setTimeout(() => setCopiedStatus(false), 2000);
@@ -65,7 +264,7 @@ export default function RecipeDetailScreen() {
 
   const handleDeletePress = () => {
     const options = ["Delete Recipe", "Cancel"];
-    const destructiveButtonIndex = 0; // makes it red on iOS
+    const destructiveButtonIndex = 0;
     const cancelButtonIndex = 1;
 
     showActionSheetWithOptions(
@@ -79,7 +278,6 @@ export default function RecipeDetailScreen() {
       },
       (selectedIndex) => {
         if (selectedIndex === destructiveButtonIndex) {
-          console.log("User confirmed deletion! Triggering API...");
           deleteRecipe(id as string);
           showSnackbar("Recipe deleted successfully.");
           router.back();
@@ -88,27 +286,39 @@ export default function RecipeDetailScreen() {
     );
   };
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
+  const startTimer = (stepNumber: number, timerSeconds: string | number) => {
+    handleStartTimer(
+      stepNumber,
+      timerSeconds,
+      id as string,
+      recipe?.title,
+      activeTimer,
+      setActiveTimer,
+      setCurrentTime,
+    );
+  };
 
-    // If there's an active timer and >0, tick down every 1 sec
-    if (activeTimer && activeTimer.remaining > 0) {
-      interval = setInterval(() => {
-        setActiveTimer((prev) =>
-          prev ? { ...prev, remaining: prev.remaining - 1 } : null,
-        );
-      }, 1000);
-    } else if (activeTimer && activeTimer.remaining === 0) {
-      // timer finished (add vib or sound)
-      console.log("Timer finished!");
+  const resetTimer = () => {
+    handleResetTimer(
+      activeTimer,
+      id as string,
+      recipe?.title,
+      setActiveTimer,
+      setCurrentTime,
+    );
+  };
+
+  const cancelTimer = async () => {
+    // COMMENTED OUT NOTIFICATION CANCEL LOGIC:
+
+    if (activeTimer?.notificationId) {
+      await Notifications.cancelScheduledNotificationAsync(
+        activeTimer.notificationId,
+      );
     }
 
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [activeTimer, activeTimer?.remaining]);
+    setActiveTimer(null);
+  };
 
   const formatCountdown = (totalSeconds: number) => {
     const m = Math.floor(totalSeconds / 60)
@@ -116,11 +326,6 @@ export default function RecipeDetailScreen() {
       .padStart(2, "0");
     const s = (totalSeconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
-  };
-
-  const startTimer = (stepNumber: number, timerSeconds: string | number) => {
-    const seconds = Number(timerSeconds);
-    setActiveTimer({ stepNumber, remaining: seconds, total: seconds });
   };
 
   if (isLoading) {
@@ -233,14 +438,6 @@ export default function RecipeDetailScreen() {
                 />
               </TouchableOpacity>
             </View>
-
-            {/* <TouchableOpacity
-              style={styles.primaryActionBtn}
-              onPress={() => setShowTimer(true)}
-            >
-              <MaterialIcons name="timer" size={16} color={Colors.on_primary} />
-              <Text style={styles.primaryActionBtnText}>30m Quick Timer</Text>
-            </TouchableOpacity> */}
           </View>
         </View>
 
@@ -326,11 +523,15 @@ export default function RecipeDetailScreen() {
 
           {recipe.tags && recipe.tags.length > 0 && (
             <View style={styles.tagsContainer}>
-              {recipe?.tags.map((tag: any) => (
-                <View key={tag.id} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag.tag_name}</Text>
-                </View>
-              ))}
+              {recipe.tags.map((tag: any, index: number) => {
+                const displayTag =
+                  typeof tag === "object" ? tag?.tag_name : tag;
+                return (
+                  <View key={tag?.id || index} style={styles.tag}>
+                    <Text style={styles.tagText}>{displayTag}</Text>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
@@ -339,7 +540,6 @@ export default function RecipeDetailScreen() {
         {recipe.ingredients &&
           recipe.ingredients.length > 0 &&
           (() => {
-            // Group ingredients by group_name in memory
             const groupedIngredients = recipe.ingredients.reduce(
               (acc: Record<string, any[]>, ing: any) => {
                 const group =
@@ -371,7 +571,6 @@ export default function RecipeDetailScreen() {
                   Tap to check off as you prepare
                 </Text>
 
-                {/* Map through each group section */}
                 {(
                   Object.entries(groupedIngredients) as unknown as [
                     string,
@@ -379,7 +578,6 @@ export default function RecipeDetailScreen() {
                   ][]
                 ).map(([groupName, items]) => (
                   <View key={groupName} style={{ marginTop: 8 }}>
-                    {/* Section Subheader */}
                     {groupName !== "Ingredients" && (
                       <Text style={styles.subSectionHeader}>{groupName}</Text>
                     )}
@@ -450,7 +648,7 @@ export default function RecipeDetailScreen() {
             <Text style={styles.sectionDesc}>Ready station before heating</Text>
 
             <View style={styles.equipGrid}>
-              {recipe?.equipment.map((item: any, idx: number) => {
+              {recipe?.equipment.map((item: any) => {
                 const isChecked = checkedEquipment.has(item.id);
                 return (
                   <TouchableOpacity
@@ -643,12 +841,13 @@ export default function RecipeDetailScreen() {
           </Text>
         </View>
       </ScrollView>
+
       {activeTimer && (
         <View style={[styles.floatingTimer, { bottom: insets.bottom + 20 }]}>
           <View style={styles.timerContainer}>
             <View style={styles.timerContent}>
               <MaterialIcons
-                name={activeTimer.remaining === 0 ? "done" : "timer"}
+                name={remainingSeconds === 0 ? "done" : "timer"}
                 size={20}
                 color={Colors.on_primary}
               />
@@ -662,13 +861,11 @@ export default function RecipeDetailScreen() {
                   ...Typography.headlineMd,
                   fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
                   color:
-                    activeTimer.remaining === 0
-                      ? Colors.primary
-                      : Colors.on_surface,
+                    remainingSeconds === 0 ? Colors.primary : Colors.on_surface,
                   marginTop: -2,
                 }}
               >
-                {formatCountdown(activeTimer.remaining)}
+                {formatCountdown(remainingSeconds)}
               </Text>
             </View>
           </View>
@@ -676,9 +873,7 @@ export default function RecipeDetailScreen() {
           {/* Controls */}
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity
-              onPress={() =>
-                setActiveTimer({ ...activeTimer, remaining: activeTimer.total })
-              }
+              onPress={resetTimer}
               style={{
                 padding: 8,
                 backgroundColor: Colors.surface,
@@ -693,7 +888,7 @@ export default function RecipeDetailScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setActiveTimer(null)} // Dismisses the timer completely
+              onPress={cancelTimer}
               style={{
                 padding: 8,
                 backgroundColor: Colors.surface,
@@ -792,20 +987,6 @@ const styles = StyleSheet.create({
     color: Colors.on_surface_variant,
     textTransform: "none",
   },
-  primaryActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-  },
-  primaryActionBtnText: {
-    ...Typography.labelSm,
-    color: Colors.on_primary,
-    textTransform: "none",
-  },
   surfaceCard: {
     backgroundColor: Colors.surface_container_lowest,
     borderWidth: 1,
@@ -825,7 +1006,7 @@ const styles = StyleSheet.create({
   },
   recipeMainTitle: {
     ...Typography.displayMobileBold,
-    fontSize: 26, // override to match HTML mapping exactly
+    fontSize: 26,
     color: Colors.on_surface,
   },
   pinDot: {
@@ -883,35 +1064,6 @@ const styles = StyleSheet.create({
     color: Colors.on_surface_variant,
     textTransform: "none",
   },
-  timerStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.surface_container,
-    borderWidth: 1,
-    borderColor: Colors.border_default,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-  },
-  timerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  timerLabel: {
-    ...Typography.labelSm,
-    color: Colors.text_muted,
-    textTransform: "none",
-  },
-  timerDigits: {
-    ...Typography.labelMd,
-    color: Colors.primary,
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  timerClose: {
-    padding: 4,
-  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -947,6 +1099,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: Spacing.sm,
   },
+  subSectionHeader: {
+    ...Typography.labelSm,
+    color: Colors.primary,
+    fontWeight: "600",
+
+    marginTop: 12,
+    marginBottom: 4,
+  },
   listContainer: {
     borderTopWidth: 1,
     borderTopColor: Colors.surface_container,
@@ -975,11 +1135,6 @@ const styles = StyleSheet.create({
     ...Typography.bodyMdBold,
     color: Colors.on_surface,
   },
-  ingNoteText: {
-    ...Typography.bodySm,
-    color: Colors.text_muted,
-    marginTop: 2,
-  },
   textStrikethrough: {
     textDecorationLine: "line-through",
     color: Colors.text_muted,
@@ -1002,42 +1157,36 @@ const styles = StyleSheet.create({
   equipText: {
     ...Typography.bodyMd,
     color: Colors.on_surface,
-    fontWeight: "500",
-    flex: 1,
   },
   stepsContainer: {
-    gap: Spacing.md,
-    marginTop: Spacing.xs,
+    gap: 12,
+    marginTop: Spacing.sm,
   },
   stepCard: {
     flexDirection: "row",
-    alignItems: "flex-start",
     gap: Spacing.md,
+    padding: Spacing.md,
     backgroundColor: Colors.surface_bright,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border_default,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
   },
   stepCardCrucial: {
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
-    borderColor: Colors.border_default, // Top, right, bottom
+    borderColor: Colors.primary,
   },
   stepNumberDot: {
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     borderRadius: Radius.full,
-    backgroundColor: Colors.border_default, // Light gray in standard
+    backgroundColor: Colors.surface_container,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 2,
   },
   stepNumberDotCrucial: {
     backgroundColor: Colors.primary,
   },
   stepNumberText: {
-    ...Typography.labelMd,
+    ...Typography.labelSm,
     color: Colors.on_surface,
     fontWeight: "700",
   },
@@ -1049,102 +1198,89 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stepMainText: {
-    ...Typography.bodyLg,
+    ...Typography.bodyMd,
     color: Colors.on_surface,
-    lineHeight: 24,
   },
   stepMainTextCrucial: {
-    fontWeight: "500",
+    fontWeight: "600",
   },
   stepNoteText: {
     ...Typography.bodySm,
     color: Colors.text_muted,
   },
   stepNoteTextCrucial: {
-    backgroundColor: Colors.border_default,
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
-    color: Colors.on_surface,
-    fontWeight: "600",
-    marginTop: 4,
+    color: Colors.on_surface_variant,
+  },
+  timerBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border_default,
   },
   chefNoteCard: {
     flexDirection: "row",
-    alignItems: "flex-start",
     gap: Spacing.md,
-    backgroundColor: Colors.surface_container,
+    backgroundColor: Colors.surface_container_lowest,
     borderWidth: 1,
     borderColor: Colors.border_default,
     borderRadius: Radius.xl,
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   chefNoteContent: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
   chefNoteTitle: {
     ...Typography.labelMd,
     color: Colors.on_surface,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   chefNoteText: {
     ...Typography.bodySm,
-    color: Colors.on_surface_variant,
+    color: Colors.text_muted,
   },
   footer: {
     alignItems: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.lg,
+    gap: 4,
+    paddingVertical: Spacing.md,
   },
   footerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.xs,
+    gap: 6,
   },
   footerText: {
-    ...Typography.bodySm,
+    ...Typography.labelSm,
     color: Colors.text_muted,
   },
   footerUtilityText: {
     ...Typography.labelSm,
-    color: Colors.border_default, // Or another faint color
-    textTransform: "none",
-  },
-  timerBlock: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: Colors.surface_container_lowest,
-    borderWidth: 1,
-    borderColor: Colors.border_default,
-    borderRadius: Radius.lg,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    color: Colors.text_muted,
+    fontSize: 11,
   },
   floatingTimer: {
     position: "absolute",
-    left: 16,
-    right: 16,
-    backgroundColor: Colors.surface_container_highest,
-    borderRadius: Radius.xl,
-    padding: 16,
+    left: Spacing.margin,
+    right: Spacing.margin,
+    backgroundColor: Colors.surface_container_lowest,
+    borderWidth: 1,
+    borderColor: Colors.border_default,
+    borderRadius: Radius.full,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: Colors.border_default,
+    shadowRadius: 8,
+    elevation: 6,
   },
   timerContainer: {
     flexDirection: "row",
@@ -1152,19 +1288,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   timerContent: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: Radius.full,
     backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
-  },
-  subSectionHeader: {
-    ...Typography.labelMd,
-    fontWeight: "700",
-    color: Colors.primary,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-    textTransform: "uppercase",
   },
 });

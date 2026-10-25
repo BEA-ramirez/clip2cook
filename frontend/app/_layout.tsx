@@ -3,7 +3,7 @@ import {
   DarkTheme,
   DefaultTheme,
   useTheme,
-} from "expo-router/react-navigation";
+} from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -47,7 +47,7 @@ const queryClient = new QueryClient({
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  anchor: "(tabs)",
+  anchor: "index",
 };
 
 // 4. Create the custom Paper Theme using your design tokens
