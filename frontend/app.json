@@ -45,7 +45,7 @@
         {
           "icon": "./assets/images/splash-icon.png",
           "color": "#ffffff",
-          "sound": "default"
+          "sounds": ["./assets/sounds/timer_chime.wav"]
         }
       ],
       "expo-font",

@@ -1,2 +1,1 @@
-- Updated response pydantic schema model of the recipe to flatten tags into a single string array
-- Updated search queries to query title, recipe by, platform, and tags
+- Updated copy recipe function to include ingredients and steps

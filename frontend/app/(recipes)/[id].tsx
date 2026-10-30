@@ -56,6 +56,7 @@ const handleStartTimer = async (
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds,
         repeats: false,
+        channelId: "default",
       },
     });
   } catch (e) {
@@ -104,6 +105,7 @@ const handleResetTimer = async (
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: activeTimer.total,
         repeats: false,
+        channelId: "default",
       },
     });
   } catch (e) {
@@ -167,7 +169,7 @@ export default function RecipeDetailScreen() {
           name: "Timer Notifications",
           importance: 5, // 5 = MAX importance (replaces AndroidImportance.MAX)
           vibrationPattern: [0, 250, 250, 250],
-          sound: "default",
+          sound: "timer_chime.wav",
         });
       }
 
@@ -256,7 +258,7 @@ export default function RecipeDetailScreen() {
 
   const copyRecipe = async () => {
     if (!recipe) return;
-    const text = `${recipe.title}:\n${recipe.ingredients?.map((i: any) => `- ${i.qty || ""} ${i.unit || ""} ${i.name}`).join("\n")}`;
+    const text = `${recipe.title}:\n${recipe.ingredients?.map((i: any) => `- ${i.qty || ""} ${i.unit || ""} ${i.name}`).join("\n")}\n\nInstructions:\n${recipe.instructions?.map((step: any) => `${step.step_number}. ${step.description}`).join("\n")}`;
     await Clipboard.setStringAsync(text);
     setCopiedStatus(true);
     setTimeout(() => setCopiedStatus(false), 2000);
@@ -359,7 +361,7 @@ export default function RecipeDetailScreen() {
       </View>
     );
   }
-
+  //console.log(JSON.stringify(recipe, null, 2));
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -434,7 +436,7 @@ export default function RecipeDetailScreen() {
                 <MaterialIcons
                   name="delete"
                   size={16}
-                  color={Colors.on_error_container}
+                  color={Colors.on_surface_variant}
                 />
               </TouchableOpacity>
             </View>
