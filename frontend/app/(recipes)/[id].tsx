@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import { useRecipeById, useDeleteRecipe } from "@/hooks/use-recipe";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Plus, Minus } from "lucide-react-native";
+import { scaleQuantity } from "@/utils/format";
 
 const handleStartTimer = async (
   stepNumber: number,
@@ -130,6 +132,18 @@ export default function RecipeDetailScreen() {
   const { data: recipe, isLoading, isError } = useRecipeById(id as string);
   const { mutate: deleteRecipe } = useDeleteRecipe();
 
+  const baseServings = useMemo(() => {
+    const m = String(recipe?.yield_amount ?? "").match(/\d+(\.\d+)?/);
+    return m ? Number(m[0]) : 1;
+  }, [recipe?.yield_amount]);
+  const [servings, setServings] = useState(baseServings);
+  const [prevBaseServings, setPrevBaseServings] = useState(baseServings);
+
+  if (baseServings !== prevBaseServings) {
+    setPrevBaseServings(baseServings);
+    setServings(baseServings);
+  }
+
   // Interactive States
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
     new Set(),
@@ -148,8 +162,6 @@ export default function RecipeDetailScreen() {
 
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const [copiedStatus, setCopiedStatus] = useState(false);
-
-  // COMMENTED OUT NOTIFICATION HANDLER & PERMISSION SETUP:
 
   useEffect(() => {
     Notifications.setNotificationHandler({
@@ -342,6 +354,10 @@ export default function RecipeDetailScreen() {
       </View>
     );
   }
+
+  const changeServings = (delta: number) => {
+    setServings((prev) => Math.max(1, prev + delta));
+  };
 
   if (isError || !recipe) {
     return (
@@ -564,14 +580,41 @@ export default function RecipeDetailScreen() {
                     <View style={styles.sectionNotch} />
                     <Text style={styles.sectionTitle}>INGREDIENTS</Text>
                   </View>
+                  <View style={styles.dynamicCont}>
+                    <TouchableOpacity
+                      style={{ padding: 3 }}
+                      onPress={() => changeServings(-1)}
+                    >
+                      <Minus
+                        size={14}
+                        color={Colors.on_surface_variant}
+                        strokeWidth={3}
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.dynamicText}>{`${servings}x`}</Text>
+                    <TouchableOpacity
+                      style={{
+                        padding: 3,
+                      }}
+                      onPress={() => changeServings(1)}
+                    >
+                      <Plus
+                        size={14}
+                        color={Colors.on_surface_variant}
+                        strokeWidth={3}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionDesc}>
+                    Tap to check off as you prepare
+                  </Text>
                   <Text style={styles.counterText}>
                     {checkedIngredients.size} / {recipe.ingredients.length}{" "}
                     ready
                   </Text>
                 </View>
-                <Text style={styles.sectionDesc}>
-                  Tap to check off as you prepare
-                </Text>
 
                 {(
                   Object.entries(groupedIngredients) as unknown as [
@@ -619,7 +662,9 @@ export default function RecipeDetailScreen() {
                                     isChecked && styles.textStrikethrough,
                                   ]}
                                 >
-                                  {ing.qty ? `${ing.qty} ` : ""}
+                                  {ing.qty
+                                    ? `${scaleQuantity(ing.qty, baseServings, servings)} `
+                                    : ""}
                                   {ing.unit ? `${ing.unit} ` : ""}
                                 </Text>
                                 {ing.name}
@@ -1296,5 +1341,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
+  },
+  dynamicCont: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: Colors.border_default,
+    padding: 4,
+  },
+  dynamicText: {
+    ...Typography.labelSm,
+    textAlign: "center",
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: Colors.border_default,
+    color: Colors.text_muted,
+    padding: 3,
+    paddingHorizontal: 8,
   },
 });

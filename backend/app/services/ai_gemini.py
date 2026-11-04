@@ -15,7 +15,7 @@ client = OpenAI(
 # define the exact JSON structure we want Gemini to return
 class AI_Ingredient(BaseModel):
      name: str = Field(..., description="The name of the ingredient")
-     qty: Optional[str] = Field(None, description="Quantity (e.g., '1', '1/2'). Null if 'to taste'.")
+     qty: Optional[str] = Field(None, description="Quantity (e.g., '1', '1/2'). Null if 'to taste'. For fractional quantities, always use ASCII format with a forward slash: 1/3, 1/2, 2/3, 1 1/2.")
      unit: Optional[str] = Field(None, description="Unit of measurement (cups, tbsp, pinch).")
      weight_grams: Optional[float] = Field(None, description="Grams if specified, else null.")
      group_name: Optional[str] = Field(None, description="The subrecipe or section this belongs to (e.g., 'Dough', 'Filling', 'Glaze'). Null if single flat list.")

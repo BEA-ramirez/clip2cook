@@ -1,1 +1,3 @@
-- Updated copy recipe function to include ingredients and steps
+- Pydantic schema for qty in ingredients is updated to handle unicode fractions
+- Dynamic serving size UI created in recipe detail screen
+- format quantity functions created and connected to the UI

@@ -1,17 +1,75 @@
-from pydantic import BaseModel, Field, model_validator
+import re
+from fractions import Fraction
+from pydantic import BaseModel, Field, model_validator, field_validator
 from typing import List, Optional, Any
 from uuid import UUID
 from datetime import datetime
+
+
+ALLOWED_QTY_PATTERN = re.compile(
+     r'^\d+(\.\d+)?$'              # whole or decimal
+     r'|^\d+/\d+$'                 # fraction
+     r'|^\d+\s+\d+/\d+$'           # mixed number
+)
 
 class RecipeRequest(BaseModel):
      url: str 
      
 class IngredientBase(BaseModel):
-     qty: Optional[str] = None
+     qty: str | None = None
      unit: Optional[str] = None
      name: str
      weight_grams: Optional[float] = None
      group_name: Optional[str] = None
+     
+     @field_validator("qty", mode="before")
+     @classmethod
+     def validate_qty_format(cls, v):
+          if v is None:
+               return None
+          s = str(v).strip()
+          if not s:
+               return None
+
+          # reject Unicode fraction characters outright
+          if any(ch in s for ch in '½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞'):
+               raise ValueError(
+                    f"Unicode fraction character found in qty '{s}'. "
+                    "Use ASCII format like '1/3' or '1 1/2'."
+               )
+
+          # reject any other non-ASCII that snuck in
+          if not s.isascii():
+               raise ValueError(f"Non-ASCII character in qty '{s}'.")
+
+          # enforce allowed shape
+          if not ALLOWED_QTY_PATTERN.match(s):
+               raise ValueError(
+                    f"Invalid qty format '{s}'. "
+                    "Allowed: '2', '0.5', '1/3', '1 1/2'."
+               )
+
+          return s  # keep the original string form
+
+     @model_validator(mode="after")
+     def compute_qty_value(self):
+          """Populate qty_value from the validated qty string."""
+          if self.qty is None:
+               return self
+
+          s = self.qty
+          try:
+               if ' ' in s:  # mixed number "1 1/2"
+                    whole, frac = s.split(' ', 1)
+                    self.qty_value = Fraction(int(whole)) + Fraction(frac)
+               elif '/' in s:  # plain fraction "1/3"
+                    self.qty_value = Fraction(s)
+               else:  # whole or decimal "2" / "0.5"
+                    self.qty_value = Fraction(s)
+          except (ValueError, ZeroDivisionError):
+               raise ValueError(f"Could not parse qty '{s}' into a numeric value.")
+
+          return self
 
 class InstructionBase(BaseModel):
      step_number: int
