@@ -16,14 +16,14 @@ from app.schemas.recipe import RecipeCreate, RecipeResponse
 router = APIRouter()
 
 @router.get("/", response_model=List[RecipeResponse])
-async def get_all_my_recipes(user_id: str = "363eb45c-4152-4c1b-8977-db9adbf465e4"):
+async def get_all_my_recipes(user_id: str = Depends(verify_supabase_token)):
      """Fetch all saved recipes for the logged-in user (Summary View)."""
      
      response = supabase.table("recipes").select("*, tags(*)").eq("user_id", user_id).order("created_at", desc=True).execute()
      return response.data
 
 @router.get("/{recipe_id}")
-async def get_recipe_details(recipe_id: UUID, user_id: str = "363eb45c-4152-4c1b-8977-db9adbf465e4"):
+async def get_recipe_details(recipe_id: UUID, user_id: str = Depends(verify_supabase_token)):
      """Fetch a single recipe AND all its nested data (ingredients, steps, etc.)."""
      
      response = (
@@ -39,7 +39,7 @@ async def get_recipe_details(recipe_id: UUID, user_id: str = "363eb45c-4152-4c1b
      return response.data[0]
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_recipe(recipe: RecipeCreate, user_id: str = "363eb45c-4152-4c1b-8977-db9adbf465e4"):
+async def create_recipe(recipe: RecipeCreate, user_id: str = Depends(verify_supabase_token)):
      """Create a new recipe along with all its nested components."""
      try:
           # strip out the nested list to only get the main recipe data
@@ -89,7 +89,7 @@ async def create_recipe(recipe: RecipeCreate, user_id: str = "363eb45c-4152-4c1b
 
 
 @router.delete("/{recipe_id}")
-async def delete_recipe(recipe_id: UUID, user_id: str = "363eb45c-4152-4c1b-8977-db9adbf465e4"):
+async def delete_recipe(recipe_id: UUID, user_id: str = Depends(verify_supabase_token)):
      """Delete a recipe. (ON DELETE CASCADE handles all the ingredients/steps!)."""
      
      response = supabase.table("recipes").delete().eq("id", str(recipe_id)).eq("user_id", user_id).execute()
@@ -99,7 +99,7 @@ async def delete_recipe(recipe_id: UUID, user_id: str = "363eb45c-4152-4c1b-8977
      return {"status": "success", "message": "Recipe deleted successfully."}
 
 @router.put("/{recipe_id}")
-async def update_recipe(recipe_id: UUID, recipe: RecipeCreate, user_id: str = "363eb45c-4152-4c1b-8977-db9adbf465e4"):
+async def update_recipe(recipe_id: UUID, recipe: RecipeCreate, user_id: str = Depends(verify_supabase_token)):
      """Update a recipe by modifying the parent and completely replacing nested items."""
      try:
           # Update Main Recipe Data

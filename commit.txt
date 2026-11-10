@@ -1,3 +1,6 @@
-- Pydantic schema for qty in ingredients is updated to handle unicode fractions
-- Dynamic serving size UI created in recipe detail screen
-- format quantity functions created and connected to the UI
+- backend: merge.py created for merging existing recipes to the anonymous account
+- frontend:
+     - settings screen created
+     - continue with google (new and existing user scenarios)
+     - auth-fallback
+     - sign-out     

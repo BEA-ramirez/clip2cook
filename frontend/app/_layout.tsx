@@ -74,6 +74,20 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    const initAuth = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        // No session, create an anonymous user
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) console.error("Anonymous sign-in failed:", error);
+      }
+    };
+    initAuth();
+  }, []);
+
+  useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
@@ -107,6 +121,10 @@ export default function RootLayout() {
                   <Stack.Screen name="index" options={{ headerShown: false }} />
                   <Stack.Screen
                     name="(recipes)"
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="auth-callback"
                     options={{ headerShown: false }}
                   />
                 </Stack>

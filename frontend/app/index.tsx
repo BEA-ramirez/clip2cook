@@ -96,11 +96,16 @@ export default function Clip2Cook() {
             <MaterialIcons name="add" size={24} color={Colors.on_surface} />
           </TouchableOpacity>
           <View style={styles.avatar}>
-            <MaterialIcons
-              name="person"
-              size={20}
-              color={Colors.surface_container_lowest}
-            />
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.push("/settings")}
+            >
+              <MaterialIcons
+                name="person"
+                size={20}
+                color={Colors.surface_container_lowest}
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
