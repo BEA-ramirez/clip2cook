@@ -6,7 +6,7 @@ import {
   updateRecipe,
   deleteRecipe,
 } from "@/services/recipe-api";
-import Toast from "react-native-toast-message";
+import { mergeAnonymousRecipes } from "@/services/auth-api";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 
 export function useRecipes() {
@@ -70,6 +70,27 @@ export function useDeleteRecipe() {
     },
     onError: (error: any) => {
       showSnackbar("Error deleting recipe");
+    },
+  });
+}
+
+export function useMergeAnonymous() {
+  const queryClient = useQueryClient();
+  const { showSnackbar } = useSnackbar();
+
+  return useMutation({
+    mutationFn: mergeAnonymousRecipes,
+    onSuccess: (data) => {
+      const moved = data?.moved_recipes ?? 0;
+      showSnackbar(
+        moved > 0
+          ? `Merged ${moved} recipe${moved === 1 ? "" : "s"} into your account.`
+          : "Signed in successfully.",
+      );
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+    onError: (error: any) => {
+      showSnackbar("Signed in, but merge failed");
     },
   });
 }

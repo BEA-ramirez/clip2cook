@@ -60,8 +60,8 @@ def extract_recipe_from_text(transcript: str) -> dict:
      """
      print("Extracting from text using LiteLLM (Gemini -> Groq)...")
      
-     primary_model = "gemini/gemini-3.5-flash-lite"
-     fallback_models = ["groq/llama-3.3-70b-versatile" ,"groq/openai/gpt-oss-120b"]
+     primary_model = "gemini/gemini-3.1-flash-lite"
+     fallback_models = ["groq/openai/gpt-oss-120b" ,"groq/openai/gpt-oss-20b"]
 
      response = completion(
           model=primary_model,
@@ -81,6 +81,7 @@ def extract_recipe_from_text(transcript: str) -> dict:
 
 clientVid = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+
 # --- VIDEO EXTRACTION (For TikTok, IG, YT Shorts) ---
 def extract_recipe_from_video(video_path: str, caption: str) -> dict:
      """Heavy Path: Uploads an mp4, extracts the recipe, and deletes the video."""
@@ -95,7 +96,7 @@ def extract_recipe_from_video(video_path: str, caption: str) -> dict:
      try:
           # feed BOTH the video file and the text prompt to the model
           response = clientVid.models.generate_content(
-               model='gemini-3.5-flash-lite',
+               model='gemini-3.1-flash-lite`',
                contents=[video_file, prompt],
                config=types.GenerateContentConfig(
                     response_mime_type="application/json",

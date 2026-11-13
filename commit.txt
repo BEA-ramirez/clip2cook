@@ -1,6 +1,1 @@
-- backend: merge.py created for merging existing recipes to the anonymous account
-- frontend:
-     - settings screen created
-     - continue with google (new and existing user scenarios)
-     - auth-fallback
-     - sign-out     
+- updated settings function to invalidate recipe list

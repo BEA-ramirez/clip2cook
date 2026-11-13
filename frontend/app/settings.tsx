@@ -19,6 +19,8 @@ import { useSnackbar } from "@/contexts/SnackbarContext";
 import { supabase } from "@/utils/supabase";
 import * as Linking from "expo-linking";
 import { apiClient } from "@/utils/api";
+import { useMergeAnonymous } from "@/hooks/use-recipe";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Theme = "system" | "light" | "dark";
 type TextSize = "small" | "default" | "large";
@@ -27,6 +29,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { showSnackbar } = useSnackbar();
   const { user, isAnonymous, loading } = useAuth();
+  const mergeAnonymous = useMergeAnonymous();
+  const queryClient = useQueryClient();
 
   const [theme, setTheme] = useState<Theme>("system");
   const [textSize, setTextSize] = useState<TextSize>("default");
@@ -112,19 +116,7 @@ export default function SettingsScreen() {
 
       // Always merge if the previous session was anonymous
       if (anonymousId) {
-        try {
-          const mergeResp = await apiClient.post("/auth/merge-anonymous", {
-            anonymous_user_id: anonymousId,
-          });
-          const moved = mergeResp.data?.moved_recipes ?? 0;
-          showSnackbar(
-            moved > 0
-              ? `Merged ${moved} recipe${moved === 1 ? "" : "s"} into your account.`
-              : "Signed in successfully.",
-          );
-        } catch (mergeErr: any) {
-          showSnackbar("Signed in, but merge failed: " + mergeErr.message);
-        }
+        mergeAnonymous.mutate(anonymousId);
       } else {
         showSnackbar("Signed in successfully.");
       }
@@ -165,6 +157,8 @@ export default function SettingsScreen() {
             showSnackbar("Signed out, but could not start a guest session.");
           } else {
             showSnackbar("Signed out. You are now in guest mode.");
+            queryClient.invalidateQueries({ queryKey: ["recipes"] });
+            queryClient.removeQueries({ queryKey: ["recipe"] });
           }
         },
       },

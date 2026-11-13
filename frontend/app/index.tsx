@@ -41,7 +41,7 @@ export default function Clip2Cook() {
     ? detectPlatform(pendingExtractionUrls[0])
     : "Web";
 
-  const showEmptyState = isLoading && recipes.length === 0 && !isExtracting;
+  const showEmptyState = !isLoading && recipes.length === 0 && !isExtracting;
 
   const filteredRecipes = recipes.filter((recipe: any) => {
     const matchesTitle = recipe.title

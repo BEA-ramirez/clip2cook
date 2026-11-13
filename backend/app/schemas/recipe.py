@@ -6,10 +6,11 @@ from uuid import UUID
 from datetime import datetime
 
 
-ALLOWED_QTY_PATTERN = re.compile(
-     r'^\d+(\.\d+)?$'              # whole or decimal
-     r'|^\d+/\d+$'                 # fraction
-     r'|^\d+\s+\d+/\d+$'           # mixed number
+ALLOWED_QTY_PATTERN = re.compile( 
+     r'^\d+(\.\d+)?$'                        # whole or decimal
+     r'|^\d+/\d+$'                           # fraction
+     r'|^\d+\s+\d+/\d+$'                     # mixed number
+     r'|^\d+(\.\d+)?\s*[-–]\s*\d+(\.\d+)?$'  # range: "150-160"
 )
 
 class RecipeRequest(BaseModel):
@@ -46,27 +47,29 @@ class IngredientBase(BaseModel):
           if not ALLOWED_QTY_PATTERN.match(s):
                raise ValueError(
                     f"Invalid qty format '{s}'. "
-                    "Allowed: '2', '0.5', '1/3', '1 1/2'."
+                    "Allowed: '2', '0.5', '1/3', '1 1/2', '150-160'."
                )
 
           return s  # keep the original string form
-
      @model_validator(mode="after")
-     def compute_qty_value(self):
-          """Populate qty_value from the validated qty string."""
+     def validate_qty_parseable(self):
+          """Fail fast if qty is unparseable. Do not store the numeric result."""
           if self.qty is None:
                return self
 
-          s = self.qty
+          s = self.qty.strip()
+
+          # Ranges are valid — they're just not numerically parseable
+          if re.match(r'^\d+(\.\d+)?\s*[-–]\s*\d+(\.\d+)?$', s):
+               return self
+
           try:
-               if ' ' in s:  # mixed number "1 1/2"
+               if ' ' in s:
                     whole, frac = s.split(' ', 1)
-                    self.qty_value = Fraction(int(whole)) + Fraction(frac)
-               elif '/' in s:  # plain fraction "1/3"
-                    self.qty_value = Fraction(s)
-               else:  # whole or decimal "2" / "0.5"
-                    self.qty_value = Fraction(s)
-          except (ValueError, ZeroDivisionError):
+                    Fraction(int(whole)) + Fraction(frac)
+               else:
+                    Fraction(s)
+          except (ValueError, ZeroDivisionError, TypeError):
                raise ValueError(f"Could not parse qty '{s}' into a numeric value.")
 
           return self
